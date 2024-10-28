@@ -35,38 +35,3 @@ cv::Mat decompress_from_avif(const std::vector<uchar> data) {
 
     return cv::imdecode(data, cv::IMREAD_COLOR);
 }
-
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/videoio/videoio.hpp>
-#include <iostream>
-#include <cstdio>
-
-void create_compressed_stream() {
-    cv::VideoCapture cap(0); // open the default camera
-    if (!cap.isOpened()) {
-        std::cerr << "Could not open the camera" << std::endl;
-        return;
-    }
-
-    cv::Mat frame;
-    std::vector<uchar> buf;
-    std::string command = "ffmpeg -re -f rawvideo -pix_fmt bgr24 -s 640x480 -r 30 -i - "
-                          "-c:v libx264 -preset ultrafast -f mpegts udp://127.0.0.1:1234";
-
-    FILE *pipe = popen(command.c_str(), "w");
-    if (!pipe) {
-        std::cerr << "Could not open pipe for FFmpeg" << std::endl;
-        return;
-    }
-
-    while (true) {
-        cap >> frame; // get a new frame from camera
-        if (frame.empty()) break;
-
-        fwrite(frame.data, 1, frame.total() * frame.elemSize(), pipe);
-    }
-
-    pclose(pipe);
-    cap.release();
-}

@@ -43,10 +43,4 @@ bool compress_to_avif(const cv::Mat frame, std::vector<uchar> &buf);
  */
 cv::Mat decompress_from_avif(const std::vector<uchar> data);
 
-/**
- * @brief Creates a compressed video stream.
- * 
- */
-void create_compressed_stream(); //FIXME temp call
-
 #endif
