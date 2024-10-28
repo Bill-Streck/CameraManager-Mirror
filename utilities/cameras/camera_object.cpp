@@ -18,13 +18,13 @@ void Camera::configure(settings set) {
         stop_all();
     }
     this->set = set;
-    cap = create_capture(set);
     ready_start = true;
     if (running) {
+        cap = create_capture(set);
         start();
-    }
-    if (streaming) {
-        stream();
+        if (streaming) {
+            stream();
+        }
     }
 }
 
@@ -36,7 +36,7 @@ bool Camera::start() {
     if (!ready_start) {
         return false;
     }
-    // TODO start the camera
+    cap = create_capture(set);
     running = true;
     return true;
 }
@@ -78,4 +78,8 @@ void Camera::hard_reset() {
     stop_all();
     cap.release();
     ready_start = false;
+}
+
+cv::VideoCapture Camera::get_capture() {
+    return cap;
 }

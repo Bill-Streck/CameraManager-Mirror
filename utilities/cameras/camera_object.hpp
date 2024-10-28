@@ -88,6 +88,13 @@ class Camera {
          * 
          */
         void hard_reset();
+
+        /**
+         * @brief Gets the camera capture object.
+         * 
+         * @return cv::VideoCapture the camera capture object.
+         */
+        cv::VideoCapture get_capture();
     private:
         cv::VideoCapture cap;
         settings set;
