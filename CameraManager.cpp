@@ -53,14 +53,14 @@ int main() {
     subscriber.connect("tcp://localhost:5555");
     subscriber.setsockopt(ZMQ_SUBSCRIBE, "", 0); // Subscribe to all messages
 
-    auto camera = Camera(front);
+    auto camera = Camera(0);
     camera.configure(set);
     camera.start();
 
     // double format = camera.get_capture().get(cv::CAP_PROP_FORMAT);
     // std::cout << "Default Pixel Format: " << format << std::endl;
 
-    avif_init();
+    // avif_init();
 
     auto count = 0;
 
@@ -110,7 +110,7 @@ int main() {
         }
     }
 
-    avif_cleanup();
+    // avif_cleanup();
 
     camera.stop_all();
 

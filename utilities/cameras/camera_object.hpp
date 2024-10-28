@@ -30,7 +30,7 @@ class Camera {
          * 
          * @param idx camera index based on dev rules
          */
-        Camera(camera_id idx);
+        Camera(int idx);
         
         /**
          * @brief Configures the camera with the given settings.

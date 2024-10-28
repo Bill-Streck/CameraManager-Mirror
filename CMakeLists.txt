@@ -8,7 +8,8 @@ CameraManager.cpp
 utilities/cameras/startup.cpp
 utilities/cameras/camera_object.cpp
 utilities/cameras/settings.cpp
-utilities/communication/compression/AVIF_ctl.cpp)
+utilities/communication/compression/AVIF_ctl.cpp
+utilities/commands/command_handler.cpp)
 
 find_package(OpenCV REQUIRED)
 find_package(PkgConfig REQUIRED)

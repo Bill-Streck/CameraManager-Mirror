@@ -15,6 +15,7 @@
  * 
  */
 enum clarity {
+    // TODO assign these properly and comment them
     lowest,
     low,
     okay,

@@ -9,7 +9,7 @@
 
 #include "camera_object.hpp"
 
-Camera::Camera(camera_id idx) {
+Camera::Camera(int idx) {
     set.device_index = idx;
 }
 
