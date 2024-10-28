@@ -43,4 +43,8 @@ void settings::use_preset(clarity c) {
     // if custom, do nothing - put in for vanity
 }
 
+std::string settings::get_resolution_for_ffmpeg() {
+    return std::to_string(width) + "x" + std::to_string(height);
+}
+
 #endif

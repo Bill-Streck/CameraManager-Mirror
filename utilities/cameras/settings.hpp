@@ -10,6 +10,8 @@
 #ifndef SETTINGS_HPP
 #define SETTINGS_HPP
 
+#include <string>
+
 /**
  * @brief Allows use of clarity presets. Advised.
  * 
@@ -57,6 +59,13 @@ class settings {
          * @param c clarity preset to use.
          */
         void use_preset(clarity c);
+
+        /**
+         * @brief Get the resolution for ffmpeg.
+         * 
+         * @return std::string resolution string for ffmpeg.
+         */
+        std::string get_resolution_for_ffmpeg();
 };
 
 #endif

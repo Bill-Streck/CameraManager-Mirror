@@ -8,6 +8,7 @@
  */
 
 #include "command_handler.hpp"
+#include "utilities/communication/streaming/streaming.hpp"
 #include <iostream>
 #include <thread>
 #include <mutex>
@@ -19,8 +20,13 @@ static zmq::socket_t local_publisher; ///< ZMQ local publisher socket.
 static zmq::socket_t remote_publisher; ///< ZMQ remote publisher socket.
 static zmq::socket_t subscriber; ///< ZMQ remote subscriber socket.
 
-std::vector<Camera> cameras; ///< Vector of camera objects. Used for seeing if a camera is on.
+static std::vector<Camera> cameras; ///< Vector of camera objects. Used for seeing if a camera is on.
+static std::vector<int> streams; ///< Vector of stream objects. Used for seeing if a stream is on.
 
+static std::vector<int> end; ///< Vector of end flags for each thread, regardless of type.
+
+// FIXME we need to be able to properly join these threads with int identifiers. May just need to preparse or put id in a more predictable spot.
+// probablly easier to modify command structure accordingly (CMD:1 ID:2 <options>)
 std::vector<std::thread> threads; ///< Vector of threads for command execution.
 
 static std::mutex local_publisher_mutex; ///< Mutex for local publisher socket.
@@ -114,6 +120,13 @@ static void local_camera_start(std::string command) {
         std::lock_guard<std::mutex> lock(local_publisher_mutex); // Automatically unlocks when out of scope (each loop)
         zmq::message_t message(frame.data, frame.total() * frame.elemSize());
         local_publisher.send(message, frame.total() * frame.elemSize());
+
+        // TODO check for termination of this particular camera
+        if (end.at(camera_id)) {
+            // TODO send a verification message
+            camera.stop_all();
+            return;
+        }
     }
 }
 
@@ -121,6 +134,15 @@ static void stream_camera_start(std::string command) {
     auto parsed = parse_cmd(command);
     auto quality = std::stoi(parsed["qu"]);
     auto camera_id = std::stoi(parsed["id"]);
+
+    for (int stream: streams) {
+        if (stream == camera_id) {
+            // Stream is already on
+            // TODO we should send a string message back to the client
+            return;
+        }
+    }
+
     // TODO get options from command
     auto set = settings();
     if (quality == 0) {
@@ -140,14 +162,38 @@ static void stream_camera_start(std::string command) {
         // TODO set custom settings or just don't support this at all (still leave custom in settings class for debugging)
     }
 
-    FILE* pipe = NULL; // TODO ffmpeg in streaming folder
+    FILE* pipe = ffmpeg_stream_camera(set, camera_id);
+    if (!pipe) {
+        // TODO send a message back to the client
+        return;
+    }
+
+    pid_t ffmpeg_pid = fileno(pipe);
+
+    while (running) {
+        // Check for termination of this particular stream
+        if (end.at(camera_id)) {
+            if (ffmpeg_pid != -1) {
+                // It is completely safe from testing to hard kill the process
+                kill(ffmpeg_pid, SIGKILL);
+            }
+            pclose(pipe);
+            return;
+        }
+        
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    }
+    if (ffmpeg_pid != -1) {
+        // It is completely safe from testing to hard kill the process
+        kill(ffmpeg_pid, SIGKILL);
+    }
+    pclose(pipe);
 }
 
 static void handler_loop() {
     while (1) {
         zmq::message_t message;
         subscriber.recv(&message);
-        // TODO change command to a basic integer
         std::string command = std::string(static_cast<char*>(message.data()), message.size());
         std::cout << "Received command: " << command << std::endl;
         if (command.at(0) == LOCAL_START) {
@@ -178,6 +224,7 @@ void clean_command_handler(void) {
     // also linked to many danger points :) use timeouts
     // uuuuuuuh we might want to close the sockets first
     for (auto& thread : threads) {
+        // FIXME we have to kill the stream processes STUPID
         thread.join();
     }
 }

@@ -62,7 +62,6 @@ void Camera::stop_all() {
 void Camera::hard_reset() {
     // TODO hard reset (replug somehow) the camera
     stop_all();
-    cap.release();
     ready_start = false;
 }
 
