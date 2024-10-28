@@ -31,6 +31,13 @@ class Camera {
          * @param idx camera index based on dev rules
          */
         Camera(int idx);
+
+        /**
+         * @brief Get the device index object
+         * 
+         * @return int the device index.
+         */
+        int get_device_index();
         
         /**
          * @brief Configures the camera with the given settings.
@@ -57,14 +64,6 @@ class Camera {
         bool start();
 
         /**
-         * @brief Streams the camera.
-         * 
-         * @return true if the camera started streaming successfully.
-         * @return false if the camera did not start streaming successfully.
-         */
-        bool stream();
-
-        /**
          * @brief Gets the current frame from the camera.
          * 
          * @return cv::Mat* pointer to the current frame.
@@ -76,12 +75,6 @@ class Camera {
          * 
          */
         void stop_all();
-
-        /**
-         * @brief Stops the camera stream.
-         * 
-         */
-        void stop_stream();
 
         /**
          * @brief Hard resets the camera.
@@ -100,7 +93,6 @@ class Camera {
         settings set;
         bool ready_start = false;
         bool running = false;
-        bool streaming = false;
 };
 
 #endif

@@ -14,6 +14,8 @@
 #include <zmq.hpp>
 #include "utilities/cameras/camera_object.hpp"
 
+// TODO might be nice to have a debug ZMQ channel for string messages so the other one doesn't have to care about types
+
 #define ZMQ_LOCAL_REC "tcp://localhost:5555" ///< Local receiver address. Not used by the command handler.
 #define ZMQ_LOCAL_PUB "tcp://*:5555" ///< Local publisher address.
 

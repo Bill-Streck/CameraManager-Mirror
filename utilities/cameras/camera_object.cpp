@@ -13,6 +13,10 @@ Camera::Camera(int idx) {
     set.device_index = idx;
 }
 
+int Camera::get_device_index() {
+    return set.device_index;
+}
+
 void Camera::configure(settings set) {
     if (running) {
         stop_all();
@@ -22,9 +26,6 @@ void Camera::configure(settings set) {
     if (running) {
         cap = create_capture(set);
         start();
-        if (streaming) {
-            stream();
-        }
     }
 }
 
@@ -38,15 +39,6 @@ bool Camera::start() {
     }
     cap = create_capture(set);
     running = true;
-    return true;
-}
-
-bool Camera::stream() {
-    if (!running) {
-        return false;
-    }
-    // TODO stream the camera
-    streaming = true;
     return true;
 }
 
@@ -64,13 +56,7 @@ cv::Mat Camera::get_current_frame() {
 void Camera::stop_all() {
     // TODO stop all camera operations
     running = false;
-    streaming = false;
     cap.release();
-}
-
-void Camera::stop_stream() {
-    // TODO stop the camera stream
-    streaming = false;
 }
 
 void Camera::hard_reset() {

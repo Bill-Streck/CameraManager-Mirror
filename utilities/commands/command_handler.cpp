@@ -1,3 +1,12 @@
+/**
+ * @file command_handler.cpp
+ * @author William Streck
+ * @brief Command handler implementation, including static functions for use as threads.
+ * @version 0.1
+ * @date 2024-10-28
+ * 
+ */
+
 #include "command_handler.hpp"
 #include <iostream>
 #include <thread>
@@ -9,6 +18,8 @@ static zmq::context_t context; ///< ZMQ context for communication.
 static zmq::socket_t local_publisher; ///< ZMQ local publisher socket.
 static zmq::socket_t remote_publisher; ///< ZMQ remote publisher socket.
 static zmq::socket_t subscriber; ///< ZMQ remote subscriber socket.
+
+std::vector<Camera> cameras; ///< Vector of camera objects. Used for seeing if a camera is on.
 
 std::vector<std::thread> threads; ///< Vector of threads for command execution.
 
@@ -61,8 +72,17 @@ static void local_camera_start(std::string command) {
     auto parsed = parse_cmd(command);
     auto quality = std::stoi(parsed["qu"]);
     auto camera_id = std::stoi(parsed["id"]);
-    // TODO get options from command
-    auto camera = Camera(front);
+
+    for (Camera cam: cameras) {
+        if (cam.get_device_index() == camera_id) {
+            // Camera is already on
+            // TODO we should send a string message back to the client
+            return;
+        }
+    }
+
+    // TODO confirm idx works as you think it does
+    auto camera = Camera(camera_id);
     auto set = settings();
     if (quality == 0) {
         set.use_preset(lowest);
@@ -78,15 +98,20 @@ static void local_camera_start(std::string command) {
         set.use_preset(highest);
     } else {
         set.use_preset(custom);
-        // TODO set custom settings or just don't support this at all (still leave custom in settings class for debugging)
+        // TODO set custom settings" or just don't support this at all (still leave custom in settings class for debugging)
     }
 
     camera.configure(set);
     camera.start();
     while (running) {
         auto frame = camera.get_current_frame();
-        // TODO compress and send frame
-        std::lock_guard<std::mutex> lock(local_publisher_mutex);
+        if (frame.empty()) {
+            // TODO handle case, maybe debug, maybe restart?
+            continue; // don't need to publish an empty frame
+        }
+        // TODO after testing see if we need to compress to speed up the publisher
+        // FIXME THIS NEEDS TO IDENTIFY WHICH CAMERA WE ARE LOOKING OUT OF
+        std::lock_guard<std::mutex> lock(local_publisher_mutex); // Automatically unlocks when out of scope (each loop)
         zmq::message_t message(frame.data, frame.total() * frame.elemSize());
         local_publisher.send(message, frame.total() * frame.elemSize());
     }
@@ -97,7 +122,6 @@ static void stream_camera_start(std::string command) {
     auto quality = std::stoi(parsed["qu"]);
     auto camera_id = std::stoi(parsed["id"]);
     // TODO get options from command
-    auto camera = Camera(front);
     auto set = settings();
     if (quality == 0) {
         set.use_preset(lowest);
@@ -116,7 +140,7 @@ static void stream_camera_start(std::string command) {
         // TODO set custom settings or just don't support this at all (still leave custom in settings class for debugging)
     }
 
-    FILE* process = NULL; // TODO ffmpeg in straeming folder
+    FILE* pipe = NULL; // TODO ffmpeg in streaming folder
 }
 
 static void handler_loop() {
