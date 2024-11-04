@@ -10,20 +10,24 @@
 #include "startup.hpp"
 
 cv::VideoCapture create_capture(settings set) {
-    auto cap = cv::VideoCapture(set.device_index);
+    auto numstr = std::to_string(set.device_index);
+    if (numstr.size() == 1) {
+        numstr = "0" + numstr;
+    }
+    auto dev_file = "/dev/urc/cam/logitech_" + numstr;
+    std::cout << "Opening device file: " << dev_file << std::endl;
+    auto cap = cv::VideoCapture(dev_file, cv::CAP_V4L2);
 
     // mandatory
     cap.set(cv::CAP_PROP_FRAME_WIDTH, set.width);
     cap.set(cv::CAP_PROP_FRAME_HEIGHT, set.height);
     cap.set(cv::CAP_PROP_FPS, set.fps);
 
-    // optional
+    // // optional
     cap.set(cv::CAP_PROP_BRIGHTNESS, set.brightness);
     cap.set(cv::CAP_PROP_CONTRAST, set.contrast);
     cap.set(cv::CAP_PROP_SATURATION, set.saturation);
-    cap.set(cv::CAP_PROP_HUE, set.hue);
     cap.set(cv::CAP_PROP_GAIN, set.gain);
-    cap.set(cv::CAP_PROP_EXPOSURE, set.exposure);
     cap.set(cv::CAP_PROP_GAMMA, set.gamma);
     cap.set(cv::CAP_PROP_AUTO_WB, set.enable_auto_white_balance);
 

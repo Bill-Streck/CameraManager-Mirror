@@ -9,9 +9,7 @@
 
 #include "camera_object.hpp"
 
-Camera::Camera(int idx) {
-    set.device_index = idx;
-}
+Camera::Camera() {}
 
 int Camera::get_device_index() {
     return set.device_index;

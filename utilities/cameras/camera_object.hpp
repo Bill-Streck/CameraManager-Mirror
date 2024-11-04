@@ -30,7 +30,7 @@ class Camera {
          * 
          * @param idx camera index based on dev rules
          */
-        Camera(int idx);
+        Camera();
 
         /**
          * @brief Get the device index object

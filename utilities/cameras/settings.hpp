@@ -38,20 +38,18 @@ class settings {
     public:
         // mandatory
         int device_index;
-        int width = 0;
-        int height = 0;
-        int fps = 0;
+        double width = 0;
+        double height = 0;
+        double fps = 0;
 
         // optional
-        // TODO test which ones work on the Logitech cams
-        int brightness = 50; // out of 100
-        int contrast = 50; // out of 100
-        int saturation = 50; // out of 100
-        int hue = 50; // out of 100
-        int gain = 50; // out of 100
-        int exposure = 50; // out of 100
-        int gamma = 50; // out of 100
-        int enable_auto_white_balance = 0; // auto white balance enable - 0 (disabled) or 1 (enabled)
+        double brightness = 128; // 0-255 - no recommended changes - use as needed
+        double contrast = 128; // 0-255 - increasing to around 150 can be helpful with consistent lighting
+        double saturation = 128; // 0-255 - increasing in general makes things very clear
+        double sharpness = 128; // 0-255 - recommended to increase significantly at higher resolutions
+        double gain = 0; // 0-255 - some cameras automatically increase this - manual changes may not work
+        double gamma = 50; // out of 100
+        double enable_auto_white_balance = 1; // auto white balance enable - 0 (disabled) or 1 (enabled) - recommended to leave enabled
 
         /**
          * @brief Allows use of a clarity preset to configure the settings class automatically.

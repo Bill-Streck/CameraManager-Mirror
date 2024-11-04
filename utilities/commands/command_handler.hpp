@@ -17,7 +17,7 @@
 // TODO might be nice to have a debug ZMQ channel for string messages so the other one doesn't have to care about types
 
 #define ZMQ_LOCAL_REC "tcp://localhost:5555" ///< Local receiver address. Not used by the command handler.
-#define ZMQ_LOCAL_PUB "tcp://*:5555" ///< Local publisher address.
+#define ZMQ_LOCAL_PUB "tcp://*:6666" ///< Local publisher address.
 
 // TODO when chance, assess stability to see if we need tcp or can just use udp
 #define ZMQ_REMOTE_REC "tcp://localhost:7777" // TODO Remote receiver address.
