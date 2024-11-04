@@ -20,10 +20,10 @@ static zmq::socket_t local_publisher; ///< ZMQ local publisher socket.
 static zmq::socket_t remote_publisher; ///< ZMQ remote publisher socket.
 static zmq::socket_t subscriber; ///< ZMQ remote subscriber socket.
 
-static std::vector<Camera> cameras; ///< Vector of camera objects. Used for seeing if a camera is on.
+static std::map<int, Camera> cameras; ///< Vector of camera objects. Used for seeing if a camera is on.
 static std::vector<int> streams; ///< Vector of stream objects. Used for seeing if a stream is on.
 
-static std::map<int, std::string> end; ///< Vector of end flags for each thread, regardless of type.
+static std::map<int, std::string> cam_command_map; ///< Vector of end flags for each thread, regardless of type.
 
 // FIXME we need to be able to properly join these threads with int identifiers. May just need to preparse or put id in a more predictable spot.
 // probablly easier to modify command structure accordingly (CMD:1 ID:2 <options>)
@@ -80,7 +80,7 @@ static void local_camera_start(std::string command) {
     auto camera_id = std::stoi(parsed["id"]);
 
     for (auto cam : cameras) {
-        if (cam.get_device_index() == camera_id) {
+        if (cam.second.get_device_index() == camera_id) {
             // Camera is already on
             // TODO we should send a string message back to the client
             return;
@@ -111,7 +111,7 @@ static void local_camera_start(std::string command) {
     camera.configure(set);
     // FIXME catch the error where it can't start
     camera.start();
-    cameras.push_back(camera);
+    cameras.insert(std::pair<int, Camera>(camera_id, camera));
     while (running) {
         auto frame = camera.get_current_frame();
         if (frame.empty()) {
@@ -125,14 +125,12 @@ static void local_camera_start(std::string command) {
                 // TODO don't constantly print
                 std::cerr << e.what() << '\n';
             }
-            if (end.find(camera_id) != end.end()) {
+            if (cam_command_map.find(camera_id) != cam_command_map.end() && cam_command_map[camera_id] == "end") {
                 // TODO send a verification message
                 std::cout << "Camera " << camera_id << " has been terminated." << std::endl;
                 camera.stop_all();
-                end.erase(camera_id);
-                // XXX as below
-                // FIXME erase the camera OR try to restart it this is genuinely top priority
-                
+                cam_command_map.erase(camera_id);
+                cameras.erase(camera_id);
                 return;
             }
             continue; // don't need to publish an empty frame
@@ -148,14 +146,16 @@ static void local_camera_start(std::string command) {
         local_publisher.send(width, ZMQ_SNDMORE);
         local_publisher.send(message, frame.total() * frame.elemSize());
 
-        if (end.find(camera_id) != end.end()) {
-            // TODO send a verification message
-            std::cout << "Camera " << camera_id << " has been terminated." << std::endl;
-            camera.stop_all();
-            end.erase(camera_id);
-            // FIXME erase the camera OR try to restart it this is genuinely top priority
-            
-            return;
+        // Handle a command if one is present
+        if (cam_command_map.find(camera_id) != cam_command_map.end()) {
+            if (cam_command_map[camera_id] == "end") {
+                // TODO send a verification message
+                std::cout << "Camera " << camera_id << " has been terminated." << std::endl;
+                camera.stop_all();
+                cam_command_map.erase(camera_id);
+                cameras.erase(camera_id);
+                return;
+            }
         }
     }
 }
@@ -202,7 +202,7 @@ static void stream_camera_start(std::string command) {
 
     while (running) {
         // Check for termination of this particular stream
-        if (end.find(camera_id) != end.end()) {
+        if (cam_command_map.find(camera_id) != cam_command_map.end()) {
             if (ffmpeg_pid != -1) {
                 // It is completely safe from testing to hard kill the process
                 kill(ffmpeg_pid, SIGKILL);
@@ -230,8 +230,22 @@ static void handler_loop() {
             threads.emplace_back(std::thread(local_camera_start, command));
         } else if (command.at(1) == STREAM_START) {
             threads.emplace_back(std::thread(stream_camera_start, command));
+        } else if (command.at(0) == LOCAL_STOP) {
+            // TODO ffmpeg process must be annihilated as well
+            // If we find a queued command that hasn't been handled, just replace it
+            auto id = std::stoi(command.substr(1, 2));
+            if (cam_command_map.find(id) != cam_command_map.end()) {
+                cam_command_map.erase(id);
+            }
+            // Confirm the camera is running locally
+            if (cameras.find(id) != cameras.end()) {
+                // Send the end command and let the thread clean up the camera
+                cam_command_map.insert(std::pair<int, std::string>(id, "end"));
+            }
+            // Otherwise we don't have to do anything
+        } else if (command.at(1) == STREAM_STOP) {
+            // TODO end ffmpeg process (depending on how I do that)
         }
-        // TODO others
     }
 }
 

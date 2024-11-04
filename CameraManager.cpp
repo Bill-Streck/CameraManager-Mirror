@@ -51,6 +51,7 @@ int main() {
     }
 
     cv::destroyAllWindows();
+    clean_command_handler();
 
     return 0;
 }

@@ -25,8 +25,10 @@
 
 // commands
 
-#define LOCAL_START '0' ///< Local camera start command.
-#define STREAM_START '1' ///< Stream camera start command.
+#define LOCAL_START '0' ///< Local camera start command. @example 0qu10id05
+#define STREAM_START '1' ///< Stream camera start command. @example 1qu10id05
+#define LOCAL_STOP '2' ///< Local camera stop command. Will take down a stream with it if the camera is multi-tasking. @example 205
+#define STREAM_STOP '3' ///< Stream camera stop command. @example 305
 
 /**
  * @brief Initializes command handler data structures and loops.

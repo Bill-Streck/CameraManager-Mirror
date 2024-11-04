@@ -11,6 +11,8 @@ socket.bind("tcp://*:5555") # ensure same address as in cpp
 # command = input("Enter command as exact string: ")
 command1 = "0qu02id01"
 command3 = "0qu02id03"
+command_end1 = "201"
+count = 0
 while True:
     socket.send_string(command1)
     print("Sent: ", command1)
@@ -18,3 +20,8 @@ while True:
     socket.send_string(command3)
     print("Sent: ", command3)
     time.sleep(1)
+    if count == 10:
+        socket.send_string(command_end1)
+        print("Sent: ", command_end1)
+        break
+    count += 1
