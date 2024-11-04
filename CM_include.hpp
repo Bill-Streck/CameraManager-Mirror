@@ -14,8 +14,4 @@
 #include "utilities/cameras/camera_object.hpp"
 #include "utilities/commands/command_handler.hpp"
 
-extern "C" {
-    #include <libavcodec/avcodec.h>
-}
-
 #endif

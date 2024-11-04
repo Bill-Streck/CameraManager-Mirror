@@ -8,6 +8,7 @@
  */
 
 #include "command_handler.hpp"
+#include "utilities/commands/command_board.hpp"
 #include "utilities/communication/streaming/streaming.hpp"
 #include <iostream>
 #include <thread>
