@@ -11,16 +11,15 @@
 #include <iostream>
 
 FILE* ffmpeg_stream_camera(settings set, int camera_id) {
-    // TODO will eventually need to handle special settings
-    // TODO use dev rules to get the correct id
-    std::string command = "ffmpeg -f v4l2 -pixel_format yuv420p -i /dev/video" + std::to_string(camera_id) + " " +
-    "-s " + set.get_resolution_for_ffmpeg() + // TODO get resolution from settings
-    "-framerate " + std::to_string(set.fps) + " " +
-    "-i -an -c:v libsvtav1 -preset 8 -f mpegts udp://localhost:9999";
+    std::string command = "ffmpeg -y -f rawvideo -pix_fmt bgr24 -s " + 
+    std::to_string(set.width) + "x" + std::to_string(set.height) +
+    " -r " + std::to_string(set.fps) + " -i -pipe:0 -an c:v libsvtav1 -preset " + AV1_PRESET +
+    " udp://localhost:1234"; // TODO actual outputs (no idea how to choose these yet :) )
 
     FILE* pipe = popen(command.c_str(), "w");
+    std::cout<<"tried"<<std::endl;
     if (!pipe) {
         std::cerr << "Error opening pipe for ffmpeg" << std::endl;
-        return NULL;
+        return nullptr;
     }
 }

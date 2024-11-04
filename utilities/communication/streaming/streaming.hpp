@@ -14,12 +14,14 @@
 #include <string>
 #include "utilities/cameras/settings.hpp"
 
+#define AV1_PRESET "8" ///< AV1 preset for ffmpeg.
+
 /**
  * @brief Starts the ffmpeg streaming process for a camera. Consumes the device resource.
  * 
  * @param set Settings object for the camera.
  * @param camera_id Camera device index.
- * @return FILE* pointer to the pipe for the ffmpeg process. Can pclose from here. NULL on error.
+ * @return FILE* pointer to the pipe for the ffmpeg process. Can pclose from here. nullptr on error.
  */
 FILE* ffmpeg_stream_camera(settings set, int camera_id);
 
