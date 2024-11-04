@@ -10,11 +10,17 @@
 #include "startup.hpp"
 
 cv::VideoCapture create_capture(settings set) {
-    auto numstr = std::to_string(set.device_index);
-    if (numstr.size() == 1) {
-        numstr = "0" + numstr;
+    std::string dev_file;
+    if (set.device_index == -1) {
+        // XXX Subject to change on new wrist camera
+        dev_file = "/dev/urc/cam/arducam_01";
+    } else {
+        auto numstr = std::to_string(set.device_index);
+        if (numstr.size() == 1) {
+            numstr = "0" + numstr;
+        }
+        dev_file = "/dev/urc/cam/logitech_" + numstr;
     }
-    auto dev_file = "/dev/urc/cam/logitech_" + numstr;
     std::cout << "Opening device file: " << dev_file << std::endl;
     auto cap = cv::VideoCapture(dev_file, cv::CAP_V4L2);
 

@@ -12,7 +12,7 @@
 
 #include "startup.hpp"
 
-enum camera_id {
+enum camera_id_match {
     front = 5,
     back = 6,
     TEST = 8

@@ -5,7 +5,7 @@ import time
 
 context = zmq.Context()
 socket = context.socket(zmq.PUB)
-socket.bind("tcp://*:5555") # ensure same address as in cpp
+socket.bind("tcp://*:7777") # ensure same address as in cpp
 
 # Send a message using the socket and cli input
 # command = input("Enter command as exact string: ")

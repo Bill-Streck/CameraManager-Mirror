@@ -21,7 +21,7 @@ int main() {
     init_command_handler();
 
     while (1) {
-        // Receive message
+        // Receive message (blocking)
         zmq::message_t received;
         subscriber.recv(&received);
         uchar cam_number = *(static_cast<uchar*>(received.data()));

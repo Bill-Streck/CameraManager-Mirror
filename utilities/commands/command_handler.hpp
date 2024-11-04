@@ -22,7 +22,7 @@
 #define ZMQ_LOCAL_REC "tcp://localhost:5555" ///< Local receiver address. Not used by the command handler.
 #define ZMQ_LOCAL_PUB "tcp://*:6666" ///< Local publisher address.
 
-// [ ] These might actually be fine and we just use ROS :)
+// TODO outright remove these and replace the communication with a global command poster (that is unchecked btw)
 #define ZMQ_REMOTE_REC "tcp://localhost:7777"
 #define ZMQ_REMOTE_PUB "tcp://*:8888"
 

@@ -63,7 +63,7 @@ void init_command_handler(void) {
     remote_publisher.bind(ZMQ_REMOTE_PUB);
     
     subscriber = zmq::socket_t(context, ZMQ_SUB);
-    subscriber.connect(ZMQ_LOCAL_REC);
+    subscriber.connect(ZMQ_REMOTE_REC);
     subscriber.setsockopt(ZMQ_SUBSCRIBE, "", 0); // Subscribe to all messages
 
     // Start thread handler loop
@@ -74,9 +74,14 @@ static void local_camera_start(std::string command, int tmap_index) {
     // Parse the command
     auto parsed = parse_cmd(command);
     auto quality = std::stoi(parsed["qu"]);
-    auto camera_id = std::stoi(parsed["id"]);
+    int camera_id = -400;
+    if (parsed["id"] == "wr") {
+        camera_id = -1;
+    } else {
+        camera_id = std::stoi(parsed["id"]);
+    }
 
-    if (cameras.find(camera_id) != cameras.end()) {
+    if (cameras.find(camera_id) != cameras.end() || camera_id == -400) {
         // Camera is already on
         // TODO we should send a string message back to the client
         threads_end.push_back(tmap_index); // Clean thread
