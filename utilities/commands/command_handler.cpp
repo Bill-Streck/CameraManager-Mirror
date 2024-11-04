@@ -137,14 +137,15 @@ static void local_camera_start(std::string command) {
             }
             continue; // don't need to publish an empty frame
         }
-        // TODO after testing see if we need to compress to speed up the publisher
-        // FIXME THIS NEEDS TO IDENTIFY WHICH CAMERA WE ARE LOOKING OUT OF
         std::lock_guard<std::mutex> lock(local_publisher_mutex); // Automatically unlocks when out of scope (each loop)
-        // FIXME automate the message sending process (function with intakes)
-        uchar cam_header = uchar(camera_id);
-        zmq::message_t header(&cam_header, 1);
+        uchar cam_number = uchar(camera_id);
+        zmq::message_t header(&cam_number, 1);
+        zmq::message_t height(&frame.rows, sizeof(frame.rows));
+        zmq::message_t width(&frame.cols, sizeof(frame.cols));
         zmq::message_t message(frame.data, frame.total() * frame.elemSize());
         local_publisher.send(header, ZMQ_SNDMORE);
+        local_publisher.send(height, ZMQ_SNDMORE);
+        local_publisher.send(width, ZMQ_SNDMORE);
         local_publisher.send(message, frame.total() * frame.elemSize());
 
         if (end.find(camera_id) != end.end()) {
