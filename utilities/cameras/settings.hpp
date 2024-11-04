@@ -23,15 +23,13 @@ enum clarity {
     okay,
     medium,
     high,
-    highest,
-    custom
+    highest
 };
 
 /**
  * @brief settings class to configure the camera.
  * Requires device index.
  * Supports several optional parameters,
- * but if using custom clarity mandatory parameters are width, height, and fps.
  * @note default values are set to 50 for all ranged optional parameters.
  */
 class settings {

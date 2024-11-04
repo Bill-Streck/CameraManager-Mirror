@@ -6,9 +6,9 @@ void avif_init(void) {
     // encoder params
     params.push_back(cv::IMWRITE_AVIF_QUALITY);
     // 60 quality is around half the bit rate of 80 quality
-    params.push_back(60); // TODO macro for starting quality
+    params.push_back(AVIF_QUALITY);
     params.push_back(cv::IMWRITE_AVIF_SPEED);
-    params.push_back(9); // TODO macro for speed
+    params.push_back(AVIF_SPEED);
 }
 
 void avif_cleanup(void) {

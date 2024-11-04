@@ -48,10 +48,11 @@ int main() {
         if (c == 27) {
             break;
         }
+        // FIXME We need an actual exit point (gobally accessible) that command handler can use
     }
 
     cv::destroyAllWindows();
-    clean_command_handler();
+    clean_command_handler(); // TODO make timeoutable
 
     return 0;
 }

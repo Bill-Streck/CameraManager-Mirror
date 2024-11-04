@@ -40,27 +40,18 @@ bool Camera::start() {
     return true;
 }
 
-// TODO should be an object instead of a pointer
 cv::Mat Camera::get_current_frame() {
     if (!running) {
         return cv::Mat(); // empty frame
     }
-    // TODO get the current frame
     cv::Mat frame = cv::Mat();
     cap >> frame;
     return frame;
 }
 
 void Camera::stop_all() {
-    // TODO stop all camera operations
     running = false;
     cap.release();
-}
-
-void Camera::hard_reset() {
-    // TODO hard reset (replug somehow) the camera
-    stop_all();
-    ready_start = false;
 }
 
 cv::VideoCapture Camera::get_capture() {

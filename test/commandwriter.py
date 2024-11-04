@@ -20,7 +20,7 @@ while True:
     socket.send_string(command3)
     print("Sent: ", command3)
     time.sleep(1)
-    if count == 10:
+    if count == 4:
         socket.send_string(command_end1)
         print("Sent: ", command_end1)
         break

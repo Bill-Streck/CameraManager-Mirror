@@ -13,8 +13,6 @@
 #include <thread>
 #include <mutex>
 
-// TODO assess how much of this should be moved to autonomy folder if any at all.
-
 static zmq::context_t context; ///< ZMQ context for communication.
 static zmq::socket_t local_publisher; ///< ZMQ local publisher socket.
 static zmq::socket_t remote_publisher; ///< ZMQ remote publisher socket.
@@ -25,9 +23,8 @@ static std::vector<int> streams; ///< Vector of stream objects. Used for seeing 
 
 static std::map<int, std::string> cam_command_map; ///< Vector of end flags for each thread, regardless of type.
 
-// FIXME we need to be able to properly join these threads with int identifiers. May just need to preparse or put id in a more predictable spot.
-// probablly easier to modify command structure accordingly (CMD:1 ID:2 <options>)
-std::vector<std::thread> threads; ///< Vector of threads for command execution.
+std::map<int, std::thread> threads; ///< Vector of threads for command execution.
+std::list<int> threads_end; ///< Vector of threads that have ended.
 
 static std::mutex local_publisher_mutex; ///< Mutex for local publisher socket.
 static std::mutex remote_publisher_mutex; ///< Mutex for remote publisher socket.
@@ -73,21 +70,19 @@ void init_command_handler(void) {
     begin_handler_loop();
 }
 
-static void local_camera_start(std::string command) {
+static void local_camera_start(std::string command, int tmap_index) {
     // Parse the command
     auto parsed = parse_cmd(command);
     auto quality = std::stoi(parsed["qu"]);
     auto camera_id = std::stoi(parsed["id"]);
 
-    for (auto cam : cameras) {
-        if (cam.second.get_device_index() == camera_id) {
-            // Camera is already on
-            // TODO we should send a string message back to the client
-            return;
-        }
+    if (cameras.find(camera_id) != cameras.end()) {
+        // Camera is already on
+        // TODO we should send a string message back to the client
+        threads_end.push_back(tmap_index); // Clean thread
+        return;
     }
 
-    // TODO confirm idx works as you think it does
     auto camera = Camera();
     auto set = settings();
     set.device_index = camera_id;
@@ -103,14 +98,16 @@ static void local_camera_start(std::string command) {
         set.use_preset(high);
     } else if (quality == 5) {
         set.use_preset(highest);
-    } else {
-        set.use_preset(custom);
-        // TODO set custom settings" or just don't support this at all (still leave custom in settings class for debugging)
     }
 
     camera.configure(set);
-    // FIXME catch the error where it can't start
-    camera.start();
+    std::cout << "Starting camera " << camera_id << std::endl;
+    try {
+        camera.start();
+    } catch(const std::exception& e) {
+        // Please note this will be caught and handled inside the while loop - I am avoiding duplicate code
+        std::cerr << e.what() << '\n';
+    }
     cameras.insert(std::pair<int, Camera>(camera_id, camera));
     while (running) {
         auto frame = camera.get_current_frame();
@@ -122,7 +119,6 @@ static void local_camera_start(std::string command) {
             }
             catch(const std::exception& e)
             {
-                // TODO don't constantly print
                 std::cerr << e.what() << '\n';
             }
             if (cam_command_map.find(camera_id) != cam_command_map.end() && cam_command_map[camera_id] == "end") {
@@ -131,8 +127,12 @@ static void local_camera_start(std::string command) {
                 camera.stop_all();
                 cam_command_map.erase(camera_id);
                 cameras.erase(camera_id);
+                threads_end.push_back(tmap_index); // Must occur LAST
                 return;
             }
+            
+            // Avoid the slamming of CPU usage for no reason
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
             continue; // don't need to publish an empty frame
         }
         std::lock_guard<std::mutex> lock(local_publisher_mutex); // Automatically unlocks when out of scope (each loop)
@@ -154,13 +154,15 @@ static void local_camera_start(std::string command) {
                 camera.stop_all();
                 cam_command_map.erase(camera_id);
                 cameras.erase(camera_id);
+                threads_end.push_back(tmap_index); // Must occur LAST
                 return;
             }
         }
+        // [ ] still might want to sleep here
     }
 }
 
-static void stream_camera_start(std::string command) {
+static void stream_camera_start(std::string command, int tmap_index) {
     auto parsed = parse_cmd(command);
     auto quality = std::stoi(parsed["qu"]);
     auto camera_id = std::stoi(parsed["id"]);
@@ -187,9 +189,6 @@ static void stream_camera_start(std::string command) {
         set.use_preset(high);
     } else if (quality == 5) {
         set.use_preset(highest);
-    } else {
-        set.use_preset(custom);
-        // TODO set custom settings or just don't support this at all (still leave custom in settings class for debugging)
     }
 
     FILE* pipe = ffmpeg_stream_camera(set, camera_id);
@@ -218,18 +217,36 @@ static void stream_camera_start(std::string command) {
         kill(ffmpeg_pid, SIGKILL);
     }
     pclose(pipe);
+    // FIXME thread clean signal
 }
 
 static void handler_loop() {
+    int map_counter = 0;
     while (1) {
+        // Quickly clean any terminated threads
+        for (auto clear: threads_end) {
+            threads[clear].join();
+            threads.erase(clear);
+            threads_end.remove(clear);
+            break; // Only clean one at a time so we don't iterate back through
+        }
+
         zmq::message_t message;
-        subscriber.recv(&message);
+        subscriber.recv(&message, ZMQ_NOBLOCK);
         std::string command = std::string(static_cast<char*>(message.data()), message.size());
         std::cout << "Received command: " << command << std::endl;
+        if (command.size() < 3) {
+            // Invalid command - sleep
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            continue;
+        }
         if (command.at(0) == LOCAL_START) {
-            threads.emplace_back(std::thread(local_camera_start, command));
+            threads.insert(std::pair<int, std::thread>(map_counter, std::thread(local_camera_start, command, map_counter)));
+            std::cout << "Thread " << map_counter << " has been created." << std::endl;
+            map_counter++;
         } else if (command.at(1) == STREAM_START) {
-            threads.emplace_back(std::thread(stream_camera_start, command));
+            threads.insert(std::pair<int, std::thread>(map_counter, std::thread(stream_camera_start, command, map_counter)));
+            map_counter++;
         } else if (command.at(0) == LOCAL_STOP) {
             // TODO ffmpeg process must be annihilated as well
             // If we find a queued command that hasn't been handled, just replace it
@@ -246,15 +263,21 @@ static void handler_loop() {
         } else if (command.at(1) == STREAM_STOP) {
             // TODO end ffmpeg process (depending on how I do that)
         }
+
+        // Miniscule efficiency improvement - we sleep less here in case there are more commands
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 }
 
 void begin_handler_loop() {
     // Start the handler loop in a new thread
-    threads.emplace_back(std::thread(handler_loop));
+    threads.insert(std::pair<int, std::thread>(-1, std::thread(handler_loop)));
 }
 
 void clean_command_handler(void) {
+    // Signal end for all threads
+    running = false;
+
     // Close all sockets
     local_publisher.close();
     remote_publisher.close();
@@ -266,10 +289,9 @@ void clean_command_handler(void) {
     // Join all threads (that should have been terminated already)
     // TODO this is a danger point so come back when more code is written
     // also linked to many danger points :) use timeouts
-    // uuuuuuuh we might want to close the sockets first
     for (auto& thread : threads) {
         // FIXME we have to kill the stream processes STUPID
-        thread.join();
+        thread.second.join();
     }
 }
 

@@ -5,6 +5,9 @@
 #include <opencv4/opencv2/opencv.hpp>
 #include <vector>
 
+#define AVIF_QUALITY 60
+#define AVIF_SPEED 9
+
 /**
  * @brief Starts the AVIF encoder.
  * 
@@ -29,7 +32,6 @@ void avif_set_quality(int quality);
  * @brief Compresses a frame to AVIF.
  * 
  * @param frame the frame to compress.
- * // TODO doc check
  * @return std::vector<uint8_t> the compressed frame as a vector of bytes.
  */
 bool compress_to_avif(const cv::Mat frame, std::vector<uchar> &buf);

@@ -14,16 +14,19 @@
 #include <zmq.hpp>
 #include "utilities/cameras/camera_object.hpp"
 
-// TODO might be nice to have a debug ZMQ channel for string messages so the other one doesn't have to care about types
+// XXX might be nice to have a debug ZMQ channel for string messages so the other one doesn't have to care about types
+
+/******* ZMQ addresses *******/
+/***** TCP is fine here *****/
 
 #define ZMQ_LOCAL_REC "tcp://localhost:5555" ///< Local receiver address. Not used by the command handler.
 #define ZMQ_LOCAL_PUB "tcp://*:6666" ///< Local publisher address.
 
-// TODO when chance, assess stability to see if we need tcp or can just use udp
-#define ZMQ_REMOTE_REC "tcp://localhost:7777" // TODO Remote receiver address.
-#define ZMQ_REMOTE_PUB "tcp://*:8888" // TODO Remote publisher address.
+// [ ] These might actually be fine and we just use ROS :)
+#define ZMQ_REMOTE_REC "tcp://localhost:7777"
+#define ZMQ_REMOTE_PUB "tcp://*:8888"
 
-// commands
+/******* Command ids *******/
 
 #define LOCAL_START '0' ///< Local camera start command. @example 0qu10id05
 #define STREAM_START '1' ///< Stream camera start command. @example 1qu10id05

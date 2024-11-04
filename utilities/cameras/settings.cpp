@@ -25,7 +25,6 @@ void settings::use_preset(clarity c) {
         width = 640;
         height = 360;
         fps = 15;
-        // TODO there was something else in here
     } else if (c == medium) {
         width = 1280;
         height = 720;
@@ -35,12 +34,10 @@ void settings::use_preset(clarity c) {
         height = 1080;
         fps = 25;
     } else if (c == highest) {
-        // FIXME absolutely not
         width = 3840;
         height = 2160;
         fps = 30;
     }
-    // if custom, do nothing - put in for vanity
 }
 
 std::string settings::get_resolution_for_ffmpeg() {

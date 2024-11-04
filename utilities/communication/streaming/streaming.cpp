@@ -12,7 +12,7 @@
 
 FILE* ffmpeg_stream_camera(settings set, int camera_id) {
     // TODO will eventually need to handle special settings
-    // TODO confirm cam idx will match device
+    // TODO use dev rules to get the correct id
     std::string command = "ffmpeg -f v4l2 -pixel_format yuv420p -i /dev/video" + std::to_string(camera_id) + " " +
     "-s " + set.get_resolution_for_ffmpeg() + // TODO get resolution from settings
     "-framerate " + std::to_string(set.fps) + " " +
