@@ -11,7 +11,12 @@
 #define CM_INCLUDE_HPP
 
 #include <iostream>
+#include <thread>
 #include "utilities/cameras/camera_object.hpp"
 #include "utilities/commands/command_handler.hpp"
+#include "utilities/commands/command_board.hpp"
+
+#define ZMQ_REMOTE_REC "tcp://localhost:7777"
+#define ZMQ_REMOTE_PUB "tcp://*:8888"
 
 #endif

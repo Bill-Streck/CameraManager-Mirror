@@ -17,7 +17,12 @@ void post_command(std::string command) {
 }
 
 std::string get_command() {
+    if (command_board.empty()) {
+        return "";
+    }
     std::string command = command_board.front();
     command_board.pop(); // No idea who wrote the queue library but this isn't their brightest work I'd hope.
     return command;
 }
+
+// FIXME add the debug channel here

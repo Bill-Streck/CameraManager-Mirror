@@ -46,7 +46,6 @@ class settings {
         double saturation = 128; // 0-255 - increasing in general makes things very clear
         double sharpness = 128; // 0-255 - recommended to increase significantly at higher resolutions
         double gain = 0; // 0-255 - some cameras automatically increase this - manual changes may not work
-        double gamma = 50; // out of 100
         double enable_auto_white_balance = 1; // auto white balance enable - 0 (disabled) or 1 (enabled) - recommended to leave enabled
 
         /**

@@ -34,7 +34,6 @@ cv::VideoCapture create_capture(settings set) {
     cap.set(cv::CAP_PROP_CONTRAST, set.contrast);
     cap.set(cv::CAP_PROP_SATURATION, set.saturation);
     cap.set(cv::CAP_PROP_GAIN, set.gain);
-    cap.set(cv::CAP_PROP_GAMMA, set.gamma);
     cap.set(cv::CAP_PROP_AUTO_WB, set.enable_auto_white_balance);
 
     return cap;

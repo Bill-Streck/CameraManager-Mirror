@@ -10,13 +10,13 @@
 #include "command_handler.hpp"
 #include "utilities/commands/command_board.hpp"
 #include "utilities/communication/streaming/streaming.hpp"
+#include "command_board.hpp"
 #include <iostream>
 #include <thread>
 #include <mutex>
 
 static zmq::context_t context; ///< ZMQ context for communication.
 static zmq::socket_t local_publisher; ///< ZMQ local publisher socket.
-static zmq::socket_t subscriber; ///< ZMQ remote subscriber socket.
 
 static std::map<int, Camera> cameras; ///< Vector of camera objects. Used for seeing if a camera is on.
 static std::map<int, std::string> local_cams; ///< Map of cameras that are being used locally. Used to manage ZMQ workflow.
@@ -28,7 +28,6 @@ static std::map<int, std::thread> threads; ///< Vector of threads for command ex
 static std::list<int> threads_end; ///< Vector of threads that have ended.
 
 static std::mutex local_publisher_mutex; ///< Mutex for local publisher socket.
-static std::mutex remote_publisher_mutex; ///< Mutex for remote publisher socket.
 
 static bool running = true; ///< Running flag for the handler loop. Doesn't need to be atomic.
 
@@ -80,10 +79,6 @@ void init_command_handler(void) {
 
     local_publisher = zmq::socket_t(context, ZMQ_PUB);
     local_publisher.bind(ZMQ_LOCAL_PUB);
-    
-    subscriber = zmq::socket_t(context, ZMQ_SUB);
-    subscriber.connect(ZMQ_REMOTE_REC);
-    subscriber.setsockopt(ZMQ_SUBSCRIBE, "", 0); // Subscribe to all messages
 
     // Start thread handler loop
     begin_handler_loop();
@@ -100,7 +95,7 @@ static void local_camera_start(std::string command, int tmap_index) {
         camera_id = std::stoi(parsed["id"]);
     }
 
-    if (cameras.find(camera_id) != cameras.end() || camera_id == -400) {
+    if (cameras.find(camera_id) != cameras.end() || camera_id == -400 || camera_id > MAX_CAMERA_ID) {
         // Camera is already on
         // TODO we should send a string message back to the client
         threads_end.push_back(tmap_index); // Clean thread
@@ -194,7 +189,6 @@ static void local_camera_start(std::string command, int tmap_index) {
         if (cam_streaming) {
             if (pipe == nullptr) {
                 std::cout << "Pipe is null" << std::endl;
-                cam_streaming = false;
                 // TODO handle in map? and let user know
                 continue;
             } else {
@@ -231,9 +225,10 @@ static void handler_loop() {
             std::cout << "Thread " << clear << " has been cleaned." << std::endl;
         }
 
-        zmq::message_t message;
-        subscriber.recv(&message, ZMQ_NOBLOCK);
-        std::string command = std::string(static_cast<char*>(message.data()), message.size());
+        // zmq::message_t message;
+        // subscriber.recv(&message, ZMQ_NOBLOCK);
+        // std::string command = std::string(static_cast<char*>(message.data()), message.size());
+        std::string command = get_command();
         if (command.size() == 0) {
             // Command doesn't exist
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -335,9 +330,8 @@ void clean_command_handler(void) {
     // Signal end for all threads
     running = false;
 
-    // Close all sockets
+    // Close the publisher
     local_publisher.close();
-    subscriber.close();
 
     // Terminate the context
     context.close();
@@ -346,7 +340,7 @@ void clean_command_handler(void) {
     // TODO this is a danger point so come back when more code is written
     // also linked to many danger points :) use timeouts
     for (auto& thread : threads) {
-        // FIXME we have to kill the stream processes STUPID
+        // ffmpeg processes die with this application
         thread.second.join();
     }
 }

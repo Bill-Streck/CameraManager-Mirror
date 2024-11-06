@@ -10,7 +10,8 @@ utilities/cameras/camera_object.cpp
 utilities/cameras/settings.cpp
 utilities/communication/compression/AVIF_ctl.cpp
 utilities/commands/command_handler.cpp
-utilities/communication/streaming/streaming.cpp)
+utilities/communication/streaming/streaming.cpp
+utilities/commands/command_board.cpp)
 
 find_package(OpenCV REQUIRED)
 find_package(PkgConfig REQUIRED)
