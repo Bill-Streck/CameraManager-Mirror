@@ -13,8 +13,9 @@
 
 #include <string>
 #include "utilities/cameras/settings.hpp"
+#include "utilities/cameras/startup.hpp"
 
-#define AV1_PRESET "8" ///< AV1 preset for ffmpeg.
+#define AV1_PRESET "11" ///< AV1 preset for ffmpeg.
 
 /**
  * @brief Starts the ffmpeg streaming process for a camera. Consumes the device resource.

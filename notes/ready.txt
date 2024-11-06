@@ -1,0 +1,3 @@
+If this supports ffmpeg, you must have a modern version installed (we'll determine exacts later)
+... link to ffmpeg install as you did it
+

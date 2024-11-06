@@ -16,23 +16,42 @@
 
 static zmq::context_t context; ///< ZMQ context for communication.
 static zmq::socket_t local_publisher; ///< ZMQ local publisher socket.
-static zmq::socket_t remote_publisher; ///< ZMQ remote publisher socket.
 static zmq::socket_t subscriber; ///< ZMQ remote subscriber socket.
 
 static std::map<int, Camera> cameras; ///< Vector of camera objects. Used for seeing if a camera is on.
+static std::map<int, std::string> local_cams; ///< Map of cameras that are being used locally. Used to manage ZMQ workflow.
 static std::map<int, std::string> streaming_cams; ///< Map of cameras that are streaming. Used for ffmpeg process management.
 
 static std::map<int, std::string> cam_command_map; ///< Vector of end flags for each thread, regardless of type.
 
-std::map<int, std::thread> threads; ///< Vector of threads for command execution.
-std::list<int> threads_end; ///< Vector of threads that have ended.
+static std::map<int, std::thread> threads; ///< Vector of threads for command execution.
+static std::list<int> threads_end; ///< Vector of threads that have ended.
 
 static std::mutex local_publisher_mutex; ///< Mutex for local publisher socket.
 static std::mutex remote_publisher_mutex; ///< Mutex for remote publisher socket.
 
 static bool running = true; ///< Running flag for the handler loop. Doesn't need to be atomic.
 
-int map_counter = 0; ///< Counter for the thread map.
+int map_counter = 0; ///< Counter for the thread map. Respectfully, if you manage to make 2^31 threads, I will be impressed.
+
+static clarity preset_from_quality(int quality) {
+    if (quality == 0) {
+        return lowest;
+    } else if (quality == 1) {
+        return low;
+    } else if (quality == 2) {
+        return okay;
+    } else if (quality == 3) {
+        return medium;
+    } else if (quality == 4) {
+        return high;
+    } else if (quality == 5) {
+        return highest;
+    }
+
+    // fallback
+    return okay;
+}
 
 static std::map<std::string, std::string> parse_cmd(std::string command) {
     // Example: 0qu10id05
@@ -61,9 +80,6 @@ void init_command_handler(void) {
 
     local_publisher = zmq::socket_t(context, ZMQ_PUB);
     local_publisher.bind(ZMQ_LOCAL_PUB);
-
-    remote_publisher = zmq::socket_t(context, ZMQ_PUB);
-    remote_publisher.bind(ZMQ_REMOTE_PUB);
     
     subscriber = zmq::socket_t(context, ZMQ_SUB);
     subscriber.connect(ZMQ_REMOTE_REC);
@@ -94,19 +110,8 @@ static void local_camera_start(std::string command, int tmap_index) {
     auto camera = Camera();
     auto set = settings();
     set.device_index = camera_id;
-    if (quality == 0) {
-        set.use_preset(lowest);
-    } else if (quality == 1) {
-        set.use_preset(low);
-    } else if (quality == 2) {
-        set.use_preset(okay);
-    } else if (quality == 3) {
-        set.use_preset(medium);
-    } else if (quality == 4) {
-        set.use_preset(high);
-    } else if (quality == 5) {
-        set.use_preset(highest);
-    }
+    auto preset = preset_from_quality(quality);
+    set.use_preset(preset);
 
     camera.configure(set);
     std::cout << "Starting camera " << camera_id << std::endl;
@@ -119,6 +124,9 @@ static void local_camera_start(std::string command, int tmap_index) {
     cameras.insert(std::pair<int, Camera>(camera_id, camera));
     FILE* pipe = nullptr;
     auto cam_streaming = false;
+    auto cam_local = false;
+
+    // Capture loop
     while (running) {
         // Check if we should be streaming or should close a stream
         if (!cam_streaming && streaming_cams.find(camera_id) != streaming_cams.end()) {
@@ -127,9 +135,19 @@ static void local_camera_start(std::string command, int tmap_index) {
         } else if (cam_streaming && streaming_cams.find(camera_id) == streaming_cams.end()) {
             // Stop the ffmpeg process
             if (pipe != nullptr) {
+                // kill
+                kill(fileno(pipe), SIGKILL);
                 pclose(pipe);
+                pipe = nullptr;
             }
             cam_streaming = false; // pipe was closed somehow I guess
+        }
+
+        // Check if we should be running local ZMQ comms
+        if (!cam_local && local_cams.find(camera_id) != local_cams.end()) {
+            cam_local = true;
+        } else if (cam_local && local_cams.find(camera_id) == local_cams.end()) {
+            cam_local = false;
         }
             
         auto frame = camera.get_current_frame();
@@ -154,28 +172,40 @@ static void local_camera_start(std::string command, int tmap_index) {
             }
             
             // Avoid the slamming of CPU usage for no reason
-            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+            std::this_thread::sleep_for(std::chrono::milliseconds(400));
             continue; // don't need to publish an empty frame
         }
-        std::lock_guard<std::mutex> lock(local_publisher_mutex); // Automatically unlocks when out of scope (each loop)
-        uchar cam_number = uchar(camera_id);
-        zmq::message_t header(&cam_number, 1);
-        zmq::message_t height(&frame.rows, sizeof(frame.rows));
-        zmq::message_t width(&frame.cols, sizeof(frame.cols));
-        zmq::message_t message(frame.data, frame.total() * frame.elemSize());
-        local_publisher.send(header, ZMQ_SNDMORE);
-        local_publisher.send(height, ZMQ_SNDMORE);
-        local_publisher.send(width, ZMQ_SNDMORE);
-        local_publisher.send(message, frame.total() * frame.elemSize());
+
+        // Publish the frame locally if applicable
+        if (cam_local) {
+            std::lock_guard<std::mutex> lock(local_publisher_mutex); // Automatically unlocks when out of scope (each loop)
+            uchar cam_number = uchar(camera_id);
+            zmq::message_t header(&cam_number, 1);
+            zmq::message_t height(&frame.rows, sizeof(frame.rows));
+            zmq::message_t width(&frame.cols, sizeof(frame.cols));
+            zmq::message_t message(frame.data, frame.total() * frame.elemSize());
+            local_publisher.send(header, ZMQ_SNDMORE);
+            local_publisher.send(height, ZMQ_SNDMORE);
+            local_publisher.send(width, ZMQ_SNDMORE);
+            local_publisher.send(message, frame.total() * frame.elemSize());
+        }
 
         // Stream if applicable
         if (cam_streaming) {
-            fwrite(frame.data, 1, frame.total() * frame.elemSize(), pipe);
+            if (pipe == nullptr) {
+                std::cout << "Pipe is null" << std::endl;
+                cam_streaming = false;
+                // TODO handle in map? and let user know
+                continue;
+            } else {
+                fwrite(frame.data, 1, frame.total() * frame.elemSize(), pipe);
+            }
         }
 
         // Handle a command if one is present
         if (cam_command_map.find(camera_id) != cam_command_map.end()) {
-            if (cam_command_map[camera_id] == "end") {
+            auto cmd = cam_command_map[camera_id];
+            if (cmd == "end") {
                 // TODO send a verification message
                 std::cout << "Camera " << camera_id << " has been terminated." << std::endl;
                 camera.stop_all();
@@ -184,6 +214,7 @@ static void local_camera_start(std::string command, int tmap_index) {
                 threads_end.push_back(tmap_index); // Must occur LAST
                 return;
             }
+            // TODO attribute handlers
         }
         // [ ] still might want to sleep here, but speed matters much more here than anywhere else
     }
@@ -191,30 +222,45 @@ static void local_camera_start(std::string command, int tmap_index) {
 
 static void handler_loop() {
     while (running) {
-        // Quickly clean any terminated threads
-        // TODO we only do one can we not do a for loop?
-        for (auto clear: threads_end) {
+        // Quickly clean any one terminated thread
+        if (threads_end.size() > 0) {
+            int clear = threads_end.front();
             threads[clear].join();
             threads.erase(clear);
             threads_end.remove(clear);
-            break; // Only clean one at a time so we don't iterate back through
+            std::cout << "Thread " << clear << " has been cleaned." << std::endl;
         }
 
         zmq::message_t message;
         subscriber.recv(&message, ZMQ_NOBLOCK);
         std::string command = std::string(static_cast<char*>(message.data()), message.size());
-        std::cout << "Received command: " << command << std::endl;
-        if (command.size() < 3) {
-            // Invalid command - sleep
+        if (command.size() == 0) {
+            // Command doesn't exist
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             continue;
         }
+        std::cout << "Received command: " << command << std::endl;
         if (command.at(0) == LOCAL_START) {
-            threads.insert(std::pair<int, std::thread>(map_counter, std::thread(local_camera_start, command, map_counter)));
-            std::cout << "Thread " << map_counter << " has been created." << std::endl;
-            map_counter++;
+            auto parsed = parse_cmd(command);
+            int id = -400;
+            if (parsed["id"] == "wr") {
+                id = -1;
+            } else {
+                id = std::stoi(parsed["id"]);
+            }
+
+            // If the camera wasn't already running, start it
+            if (cameras.find(id) == cameras.end()) {
+                threads.insert(std::pair<int, std::thread>(map_counter, std::thread(local_camera_start, command, map_counter)));
+                std::cout << "Thread " << map_counter << " has been created." << std::endl;
+                map_counter++;
+            }
+
+            // Tell the camera to start locally if it isn't already
+            if (local_cams.find(id) == local_cams.end()) {
+                local_cams.insert(std::pair<int, std::string>(id, " "));
+            }
         } else if (command.at(0) == STREAM_START) {
-            // FIXME for now we have assumed it locally started. Fix it to start it the thread and add locally not sending clauses on the ZMQ stuff.
             // Parse the command for only the camera ID
             auto parsed = parse_cmd(command);
             int id = -400;
@@ -224,24 +270,55 @@ static void handler_loop() {
                 id = std::stoi(parsed["id"]);
             }
 
-            // FIXME this block is unsafe, fix it with the above statements.
-            streaming_cams.insert(std::pair<int, std::string>(id, " "));
+            // If the camera wasn't already running, start it
+            if (cameras.find(id) == cameras.end()) {
+                threads.insert(std::pair<int, std::thread>(map_counter, std::thread(local_camera_start, command, map_counter)));
+                std::cout << "Thread " << map_counter << " has been created." << std::endl;
+                map_counter++;
+            }
             
+            // Tell the camera to start streaming if it isn't already
+            if (streaming_cams.find(id) == streaming_cams.end()) {
+                streaming_cams.insert(std::pair<int, std::string>(id, " "));
+            }
         } else if (command.at(0) == LOCAL_STOP) {
-            // TODO ffmpeg process must be annihilated as well
-            // If we find a queued command that hasn't been handled, just replace it
-            auto id = std::stoi(command.substr(1, 2));
-            if (cam_command_map.find(id) != cam_command_map.end()) {
-                cam_command_map.erase(id);
+            auto parsed = parse_cmd(command);
+            int id = -400;
+            if (parsed["id"] == "wr") {
+                id = -1;
+            } else {
+                id = std::stoi(parsed["id"]);
             }
-            // Confirm the camera is running locally
-            if (cameras.find(id) != cameras.end()) {
-                // Send the end command and let the thread clean up the camera
-                cam_command_map.insert(std::pair<int, std::string>(id, "end"));
+
+            // Remove the camera from local cams
+            if (local_cams.find(id) != local_cams.end()) {
+                local_cams.erase(id);
             }
-            // Otherwise we don't have to do anything
-        } else if (command.at(1) == STREAM_STOP) {
-            // TODO end ffmpeg process (depending on how I do that)
+
+            // If the camera is not streaming, stop it entirely to save resources
+            if (streaming_cams.find(id) == streaming_cams.end()) {
+                cam_command_map[id] = "end";
+            }
+        } else if (command.at(0) == STREAM_STOP) {
+            auto parsed = parse_cmd(command);
+            int id = -400;
+            if (parsed["id"] == "wr") {
+                id = -1;
+            } else {
+                id = std::stoi(parsed["id"]);
+            }
+
+            std::cout << "Stopping camera " << id << std::endl;
+
+            // Remove camera from streaming cams
+            if (streaming_cams.find(id) != streaming_cams.end()) {
+                streaming_cams.erase(id);
+            }
+
+            // If the camera is not being used locally, stop it entirely to save resources
+            if (local_cams.find(id) == local_cams.end()) {
+                cam_command_map[id] = "end";
+            }
         }
 
         // Miniscule efficiency improvement - we sleep less here in case there are more commands
@@ -260,7 +337,6 @@ void clean_command_handler(void) {
 
     // Close all sockets
     local_publisher.close();
-    remote_publisher.close();
     subscriber.close();
 
     // Terminate the context

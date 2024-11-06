@@ -5,8 +5,8 @@
 #include <opencv4/opencv2/opencv.hpp>
 #include <vector>
 
-#define AVIF_QUALITY 60
-#define AVIF_SPEED 9
+#define AVIF_QUALITY 20 ///< Quality 0-100.
+#define AVIF_SPEED 6 ///< Speed 0-10.
 
 /**
  * @brief Starts the AVIF encoder.

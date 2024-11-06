@@ -5,7 +5,6 @@ std::vector<int> params; ///< Parameters for the AVIF encoder.
 void avif_init(void) {
     // encoder params
     params.push_back(cv::IMWRITE_AVIF_QUALITY);
-    // 60 quality is around half the bit rate of 80 quality
     params.push_back(AVIF_QUALITY);
     params.push_back(cv::IMWRITE_AVIF_SPEED);
     params.push_back(AVIF_SPEED);
@@ -31,7 +30,5 @@ bool compress_to_avif(const cv::Mat frame, std::vector<uchar> &buf) {
 }
 
 cv::Mat decompress_from_avif(const std::vector<uchar> data) {
-    std::vector<int> params;
-
     return cv::imdecode(data, cv::IMREAD_COLOR);
 }
