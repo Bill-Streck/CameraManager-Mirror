@@ -12,9 +12,9 @@
 
 #include <iostream>
 #include <thread>
-#include "utilities/cameras/camera_object.hpp"
-#include "utilities/commands/command_handler.hpp"
-#include "utilities/commands/command_board.hpp"
+#include "camera_object.hpp"
+#include "command_handler.hpp"
+#include "command_board.hpp"
 
 #define ZMQ_REMOTE_REC "tcp://localhost:7777"
 #define ZMQ_REMOTE_PUB "tcp://*:8888"

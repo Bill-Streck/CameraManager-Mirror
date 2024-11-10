@@ -8,9 +8,6 @@
 
 #include "H264Decoder.hpp"
 
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/ini_parser.hpp>
-
 namespace Codec
 {
   H264Decoder::H264Decoder()

@@ -9,8 +9,8 @@
  */
 
 #include "CM_include.hpp"
-#include "utilities/communication/compression/H264Encoder.hpp"
-#include "utilities/communication/compression/H264Decoder.hpp"
+#include "H264Encoder.hpp"
+#include "H264Decoder.hpp"
 
 using namespace Codec;
 

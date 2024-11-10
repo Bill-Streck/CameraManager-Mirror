@@ -12,8 +12,8 @@
 #define STREAMING_H
 
 #include <string>
-#include "utilities/cameras/settings.hpp"
-#include "utilities/cameras/startup.hpp"
+#include "settings.hpp"
+#include "startup.hpp"
 
 #define AV1_PRESET "11" ///< AV1 preset for ffmpeg.
 

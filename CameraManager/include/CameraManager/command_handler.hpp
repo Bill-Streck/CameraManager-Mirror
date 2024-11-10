@@ -13,7 +13,7 @@
 
 // FIXME dumping zmq when we do ROS
 #include <zmq.hpp>
-#include "utilities/cameras/camera_object.hpp"
+#include "camera_object.hpp"
 
 // XXX might be nice to have a debug ZMQ channel for string messages so the other one doesn't have to care about types
 
