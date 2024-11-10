@@ -29,6 +29,8 @@
 #define STREAM_START '1' ///< Stream camera start command. @example 1qu10id05
 #define LOCAL_STOP '2' ///< Local camera stop command. Will take down a stream with it if the camera is multi-tasking. @example 205
 #define STREAM_STOP '3' ///< Stream camera stop command. @example 305
+#define FORCE_RESTART '4' ///< Force restart command. Retains state. @example 405
+#define ATTRIBUTE_MODIFY '5' ///< Attribute modification command. @example 5qu10id05
 
 /**
  * @brief Initializes command handler data structures and loops.

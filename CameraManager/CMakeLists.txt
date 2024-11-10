@@ -44,6 +44,7 @@ add_executable(CameraManager
   src/utilities/commands/command_handler.cpp
   src/utilities/communication/streaming/streaming.cpp
   src/utilities/commands/command_board.cpp
+  src/utilities/commands/command_generation.cpp
   src/utilities/communication/compression/H264Decoder.cpp
   src/utilities/communication/compression/H264Encoder.cpp
 )
@@ -66,6 +67,11 @@ target_link_libraries(CameraManager
   -lboost_system
   -lpthread
   )
+
+ament_target_dependencies(CameraManager
+  rclcpp
+  std_msgs
+)
 
 install(TARGETS
   CameraManager

@@ -10,6 +10,7 @@
 #include "command_handler.hpp"
 #include "command_board.hpp"
 #include "streaming.hpp"
+#include "command_generation.hpp"
 #include "command_board.hpp"
 #include <iostream>
 #include <thread>
@@ -50,28 +51,6 @@ static clarity preset_from_quality(int quality) {
 
     // fallback
     return okay;
-}
-
-// TODO move this into a utility with the cmd generator function
-static std::map<std::string, std::string> parse_cmd(std::string command) {
-    // Example: 0qu10id05
-    // local start command, quality 10, camera id 5
-    std::map<std::string, std::string> parsed;
-    
-    // Erase the first character as it is the command type
-    command.erase(0, 1);
-
-    // Find key-value pairs
-    size_t pos = 0;
-    while (pos < command.size()) {
-        std::string key = command.substr(pos, 2);
-        pos += 2;
-        std::string value = command.substr(pos, 2); // FORCES TWO DIGIT NUMBERS
-        parsed[key] = value;
-        pos += 2; // to next pair
-    }
-
-    return parsed;
 }
 
 void init_command_handler(void) {
@@ -153,6 +132,7 @@ static void local_camera_start(std::string command, int tmap_index) {
         auto now_nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(now - now_seconds);
         auto ts_seconds = now_seconds.time_since_epoch().count();
         auto ts_nanoseconds = static_cast<int64_t>(now_nanoseconds.count());
+
         if (frame.empty()) {
             std::cout << "Camera " << camera_id << " has no frame." << std::endl;
             try {
@@ -212,7 +192,7 @@ static void local_camera_start(std::string command, int tmap_index) {
                 threads_end.push_back(tmap_index); // Must occur LAST
                 return;
             }
-            // TODO attribute handlers
+            // TODO attribute handlers - should work through the camera object directly
         }
         // [ ] still might want to sleep here, but speed matters much more here than anywhere else
     }
@@ -229,9 +209,6 @@ static void handler_loop() {
             std::cout << "Thread " << clear << " has been cleaned." << std::endl;
         }
 
-        // zmq::message_t message;
-        // subscriber.recv(&message, ZMQ_NOBLOCK);
-        // std::string command = std::string(static_cast<char*>(message.data()), message.size());
         std::string command = get_command();
         if (command.size() == 0) {
             // Command doesn't exist
@@ -319,6 +296,7 @@ static void handler_loop() {
                 cam_command_map[id] = "end";
             }
         }
+        // TODO attribute, force restart
 
         // Miniscule efficiency improvement - we sleep less here in case there are more commands
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
