@@ -13,3 +13,5 @@ CMakeUserPresets.json
 build/
 out/
 .vscode/
+install/
+log/
