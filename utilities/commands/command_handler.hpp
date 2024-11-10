@@ -11,6 +11,7 @@
 #ifndef COMMAND_HANDLER_H
 #define COMMAND_HANDLER_H
 
+// FIXME dumping zmq when we do ROS
 #include <zmq.hpp>
 #include "utilities/cameras/camera_object.hpp"
 

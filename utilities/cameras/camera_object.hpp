@@ -12,13 +12,7 @@
 
 #include "startup.hpp"
 
-enum camera_id_match {
-    front = 5,
-    back = 6,
-    TEST = 8
-    // TODO the actual values
-};
-
+// FIXME needs an attribute handler function
 /**
  * @brief Camera wrapper class. Allows general management of camera utilities.
  * 

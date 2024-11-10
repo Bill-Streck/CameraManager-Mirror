@@ -52,6 +52,7 @@ static clarity preset_from_quality(int quality) {
     return okay;
 }
 
+// TODO move this into a utility with the cmd generator function
 static std::map<std::string, std::string> parse_cmd(std::string command) {
     // Example: 0qu10id05
     // local start command, quality 10, camera id 5
@@ -145,15 +146,18 @@ static void local_camera_start(std::string command, int tmap_index) {
             cam_local = false;
         }
             
+        // Get the time since epoch and the frame (getting it before should be more accurate to the time the frame was captured)
+        auto now = std::chrono::system_clock::now();
         auto frame = camera.get_current_frame();
+        auto now_seconds = std::chrono::time_point_cast<std::chrono::seconds>(now);
+        auto now_nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(now - now_seconds);
+        auto ts_seconds = now_seconds.time_since_epoch().count();
+        auto ts_nanoseconds = static_cast<int64_t>(now_nanoseconds.count());
         if (frame.empty()) {
             std::cout << "Camera " << camera_id << " has no frame." << std::endl;
-            try
-            {
+            try {
                 camera.start();
-            }
-            catch(const std::exception& e)
-            {
+            } catch(const std::exception& e) {
                 std::cerr << e.what() << '\n';
             }
             if (cam_command_map.find(camera_id) != cam_command_map.end() && cam_command_map[camera_id] == "end") {
@@ -171,6 +175,17 @@ static void local_camera_start(std::string command, int tmap_index) {
             continue; // don't need to publish an empty frame
         }
 
+        // Stream if applicable
+        if (cam_streaming) {
+            if (pipe == nullptr) {
+                std::cout << "Pipe is null" << std::endl;
+                // TODO handle in map? and let user know
+                continue;
+            } else {
+                fwrite(frame.data, 1, frame.total() * frame.elemSize(), pipe);
+            }
+        }
+
         // Publish the frame locally if applicable
         if (cam_local) {
             std::lock_guard<std::mutex> lock(local_publisher_mutex); // Automatically unlocks when out of scope (each loop)
@@ -183,17 +198,6 @@ static void local_camera_start(std::string command, int tmap_index) {
             local_publisher.send(height, ZMQ_SNDMORE);
             local_publisher.send(width, ZMQ_SNDMORE);
             local_publisher.send(message, frame.total() * frame.elemSize());
-        }
-
-        // Stream if applicable
-        if (cam_streaming) {
-            if (pipe == nullptr) {
-                std::cout << "Pipe is null" << std::endl;
-                // TODO handle in map? and let user know
-                continue;
-            } else {
-                fwrite(frame.data, 1, frame.total() * frame.elemSize(), pipe);
-            }
         }
 
         // Handle a command if one is present

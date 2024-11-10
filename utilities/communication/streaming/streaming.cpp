@@ -21,7 +21,9 @@ FILE* ffmpeg_stream_camera(settings set, int camera_id) {
     // H264 fallback (5-6x the bitrate, but much lower latency)
     std::string command = "ffmpeg -y -f rawvideo -pix_fmt bgr24 -s " + 
     std::to_string(int(set.width)) + "x" + std::to_string(int(set.height)) +
-    " -r " + std::to_string(set.fps) + " -i - -c:v libx264 -preset veryfast -tune zerolatency" +
+    // " -r " + std::to_string(set.fps) + 
+    " -re" +
+    " -i - -c:v libx264 -preset veryfast -tune zerolatency" +
     " -f mpegts udp://localhost:9999 > /dev/null 2>&1";
 
     FILE* pipe = popen(command.c_str(), "w");

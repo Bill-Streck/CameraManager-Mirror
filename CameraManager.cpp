@@ -9,8 +9,64 @@
  */
 
 #include "CM_include.hpp"
+#include "utilities/communication/compression/H264Encoder.hpp"
+#include "utilities/communication/compression/H264Decoder.hpp"
+
+using namespace Codec;
 
 int main() {
+    // test video compression and decompression with theora
+    // TODO get rid of this should not be here in implementation is for testing only
+    cv::VideoCapture cap(0); // Acer camera bc why not
+    if (!cap.isOpened()) {
+        std::cerr << "Error opening camera." << std::endl;
+        return -1;
+    }
+    cap.set(cv::CAP_PROP_FRAME_WIDTH, 640);
+    cap.set(cv::CAP_PROP_FRAME_HEIGHT, 360);
+
+    auto encoder = std::make_unique<H264Encoder>();
+    auto decoder = std::make_unique<H264Decoder>();
+    uint8_t* wEncodedData = nullptr;
+    uint8_t* wDecodedData = nullptr;
+    int wPacketSize = 0;
+    int cumulated_size = 0;
+
+    while (0) {
+        cv::Mat frame;
+        cap >> frame;
+        if (frame.empty()) {
+            std::cerr << "Error capturing frame." << std::endl;
+            exit(1);
+        }
+
+        cv::imshow("Original", frame);
+        // cv::cvtColor(frame, frame, cv::COLOR_BGR2YUV_I420);
+
+        // encode
+        wEncodedData = encoder->encode(frame.data);
+        if (nullptr != wEncodedData) {
+            wPacketSize = encoder->getPacketSize();
+        }
+
+        // decode
+        wDecodedData = decoder->decode(wEncodedData, wPacketSize);
+        cv::Mat decodedFrame(360, 640, CV_8UC3);
+
+        if (nullptr != wEncodedData && nullptr != wDecodedData) {
+            decodedFrame.data = (uchar*)wDecodedData;
+            // check for overflowing data
+            std::cout << "Decoded frame size: " << decodedFrame.total() << std::endl;
+            std::cout << "expected size: " << 360*640 << std::endl;
+        }
+
+        cv::imshow("Frame", decodedFrame);
+        char c = (char) cv::waitKey(25);
+        if (c == 27) {
+            exit(1);
+        }
+    }
+
     // Initialize zmq context
     zmq::context_t context(1);
 
@@ -29,9 +85,9 @@ int main() {
 
     while (1) {
         // receive global message (temporary)
-        // TODO when put on ROS, this must be a thread that listens for global messages as it will either block or accomplish nothing
+        // TODO this becomes a callback on ROS
         zmq::message_t global_received;
-        global_subscriber.recv(&global_received, ZMQ_NOBLOCK);
+        global_subscriber.recv(&global_received);
         std::string global_message = std::string(static_cast<char*>(global_received.data()), global_received.size());
         std::cout << "Global message: " << global_message << std::endl;
         post_command(global_message);
