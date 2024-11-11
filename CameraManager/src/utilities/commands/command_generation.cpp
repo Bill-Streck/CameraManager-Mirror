@@ -53,8 +53,10 @@ static std::string generate_command(uint32_t command) {
             break;
         case 1:
             command_str += STREAM_START;
-            // TODO quality safety check
-            command_str += "qu" + std::to_string(long_quality);
+            if (long_quality_str.size() == 1) {
+                long_quality_str = "0" + long_quality_str;
+            }
+            command_str += "qu" + long_quality_str;
             if (long_id == 0b11111) {
                 command_str += "idwr";
             } else {
@@ -143,6 +145,7 @@ static std::string generate_command(uint32_t command) {
             return "";
     }
 
+    std::cout << "Generated command: " << command_str << std::endl;
     return command_str;
 }
 

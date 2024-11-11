@@ -32,8 +32,8 @@ class CameraManager : public rclcpp::Node
     private:
         void command_callback(const std_msgs::msg::UInt32::SharedPtr msg) const
         {
-            RCLCPP_INFO(this->get_logger(), "I heard: '%d'", msg->data);
-            // handle_command(msg->data);
+            RCLCPP_INFO(this->get_logger(), "I heard: '%x'", msg->data);
+            handle_command(msg->data);
         }
         rclcpp::Subscription<std_msgs::msg::UInt32>::SharedPtr subscription_;
 };
@@ -52,11 +52,30 @@ class TestPub : public rclcpp::Node
 
     private:
         uint32_t count = 0;
+        uint32_t commands[6] = {
+            // Start camera 1 local
+            0b000'00010'00001'000'0000'0000'0000'0000,
+            // Start camera 3 local
+            0b000'00010'00011'000'0000'0000'0000'0000,
+            // [ ] end camera 1 local
+            0xFFFFFFFF,
+            // Stream camera 3
+            0b001'00010'00011'000'0000'0000'0000'0000,
+            // [ ] end camera 3 local
+            0xFFFFFFFF,
+            // [ ] end camera 3 stream after delay
+            0xFFFFFFFF
+        };
         void timer_callback()
         {
             auto message = std_msgs::msg::UInt32();
-            message.data = count++;
-            RCLCPP_INFO(this->get_logger(), "Publishing: '%d'", message.data);
+            if (count < 6) {
+                message.data = commands[count];
+                count++;
+            } else {
+                message.data = 0xFFFFFFFF;
+            }
+            RCLCPP_INFO(this->get_logger(), "Publishing: '%x'", message.data);
             publisher_->publish(message);
         }
         rclcpp::Publisher<std_msgs::msg::UInt32>::SharedPtr publisher_;
