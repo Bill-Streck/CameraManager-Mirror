@@ -109,6 +109,11 @@ static void local_camera_start(std::string command, int tmap_index) {
         // Check if we should be streaming or should close a stream
         if (!cam_streaming && streaming_cams.find(camera_id) != streaming_cams.end()) {
             pipe = ffmpeg_stream_camera(set, camera_id);
+            if (pipe == nullptr) {
+                std::cerr << "Error starting ffmpeg process for camera " << camera_id << std::endl;
+                // TODO send a verification message
+                cam_command_map[camera_id] = "end";
+            }
             cam_streaming = true;
         } else if (cam_streaming && streaming_cams.find(camera_id) == streaming_cams.end()) {
             // Stop the ffmpeg process
@@ -154,19 +159,14 @@ static void local_camera_start(std::string command, int tmap_index) {
             }
             
             // Avoid the slamming of CPU usage for no reason
+            // TODO constants for sleeps
             std::this_thread::sleep_for(std::chrono::milliseconds(400));
             continue; // don't need to publish an empty frame
         }
 
         // Stream if applicable
-        if (cam_streaming) {
-            if (pipe == nullptr) {
-                std::cout << "Pipe is null" << std::endl;
-                // TODO handle in map? and let user know
-                continue;
-            } else {
-                fwrite(frame.data, 1, frame.total() * frame.elemSize(), pipe);
-            }
+        if (cam_streaming && pipe != nullptr) {
+            fwrite(frame.data, 1, frame.total() * frame.elemSize(), pipe);
         }
 
         // Publish the frame locally if applicable

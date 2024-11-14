@@ -20,6 +20,7 @@ FILE* ffmpeg_stream_camera(settings set, int camera_id) {
     std::string command = "ffmpeg -y -f rawvideo -pix_fmt bgr24 -s " + 
     std::to_string(int(set.width)) + "x" + std::to_string(int(set.height)) +
     " -re" +
+    // TODO put constants
     " -i - -c:v libx264 -preset veryfast -tune zerolatency" +
     " -f mpegts -omit_video_pes_length 0 " +
     "udp://192.168.1.101:9999";
