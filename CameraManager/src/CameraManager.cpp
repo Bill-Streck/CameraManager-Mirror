@@ -32,7 +32,6 @@ class CameraManager : public rclcpp::Node
     private:
         void command_callback(const std_msgs::msg::UInt32::SharedPtr msg) const
         {
-            RCLCPP_INFO(this->get_logger(), "I heard: '%x'", msg->data);
             handle_command(msg->data);
         }
         rclcpp::Subscription<std_msgs::msg::UInt32>::SharedPtr subscription_;
@@ -53,14 +52,14 @@ class TestPub : public rclcpp::Node
     private:
         uint32_t count = 0;
         uint32_t commands[6] = {
-            // Start camera 1 local
-            0b000'00010'00001'000'0000'0000'0000'0000,
-            // Start camera 3 local
-            0b000'00010'00011'000'0000'0000'0000'0000,
+            // Start camera 7 local
+            0b000'00010'00111'000'0000'0000'0000'0000,
+            // Start camera 8 local
+            0b000'00010'01000'000'0000'0000'0000'0000,
             // [ ] end camera 1 local
             0xFFFFFFFF,
-            // Stream camera 3
-            0b001'00010'00011'000'0000'0000'0000'0000,
+            // Stream camera 7
+            0b001'00010'00111'000'0000'0000'0000'0000,
             // [ ] end camera 3 local
             0xFFFFFFFF,
             // [ ] end camera 3 stream after delay
@@ -75,7 +74,6 @@ class TestPub : public rclcpp::Node
             } else {
                 message.data = 0xFFFFFFFF;
             }
-            RCLCPP_INFO(this->get_logger(), "Publishing: '%x'", message.data);
             publisher_->publish(message);
         }
         rclcpp::Publisher<std_msgs::msg::UInt32>::SharedPtr publisher_;
@@ -106,10 +104,10 @@ static void display_received_frames() {
         cv::Mat frame(height, width, CV_8UC3);
         cv::Mat new_frame(frame.size(), frame.type(), received.data());
 
-        if (cam_number == 1) {
-            cv::imshow("Frame1", new_frame);
-        } else if (cam_number == 3) {
-            cv::imshow("Frame3", new_frame);
+        if (cam_number == 7) {
+            cv::imshow("Frame7", new_frame);
+        } else if (cam_number == 8) {
+            cv::imshow("Frame8", new_frame);
         } else {
             cv::imshow("FrameERROR", new_frame);
             std::cout << "Error: Camera number spawned in for some reason." << std::endl;

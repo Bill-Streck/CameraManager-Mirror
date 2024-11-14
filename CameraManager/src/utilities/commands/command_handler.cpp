@@ -15,6 +15,9 @@
 #include <iostream>
 #include <thread>
 #include <mutex>
+#ifndef SIGKILL
+    #include <signal.h>
+#endif
 
 static zmq::context_t context; ///< ZMQ context for communication.
 static zmq::socket_t local_publisher; ///< ZMQ local publisher socket.
