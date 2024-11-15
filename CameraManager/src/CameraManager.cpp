@@ -72,7 +72,9 @@ class TestPub : public rclcpp::Node
                 message.data = commands[count];
                 count++;
             } else {
-                message.data = 0xFFFFFFFF;
+                // message.data = 0xFFFFFFFF;
+                // slowly increase brightness of camera 1 by 10
+                message.data = 0b101'00001'0000'0000'0000'0000'0000'1010;
             }
             publisher_->publish(message);
         }

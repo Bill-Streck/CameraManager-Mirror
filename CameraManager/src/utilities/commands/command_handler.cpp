@@ -242,8 +242,24 @@ static void local_camera_start(std::string command, int tmap_index) {
                 cameras.erase(camera_id);
                 threads_end.push_back(tmap_index); // Must occur LAST
                 return;
+            } else if (cmd.at(0) == '5') {
+                // Handle attribute modification
+                // TODO send verification message
+                auto parsed = parse_cmd(cmd);
+                auto attribute = std::stoi(parsed["at"]); // attribute key
+                auto value = std::stoi(parsed["va"]); // value MODIFIER key
+                // Warn them if they try gain
+                if (attribute == ATTR_GAIN) {
+                    // TODO warn them even though you'll still try
+                }
+                if (!camera.change_attribute(attribute, value)) {
+                    // TODO send failure message
+                    std::cerr << "Error changing attribute " << attribute << " for camera " << camera_id << std::endl;
+                }
+                // TODO temp
+                auto b = camera.get_capture().get(cv::CAP_PROP_BRIGHTNESS);
+                std::cout << "Brightness: " << b << std::endl;
             }
-            // TODO attribute handlers - should work through the camera object directly
         }
     }
 }
@@ -345,8 +361,27 @@ static void handler_loop() {
             if (local_cams.find(id) == local_cams.end()) {
                 cam_command_map[id] = "end";
             }
+        } else if (command.at(0) == FORCE_RESTART) {
+            // TODO force restart
+        } else if (command.at(0) == ATTRIBUTE_MODIFY) {
+            auto parsed = parse_cmd(command);
+            int id = -400;
+            if (parsed["id"] == "wr") {
+                id = -1;
+            } else {
+                id = std::stoi(parsed["id"]);
+            }
+            if (local_cams.find(id) != local_cams.end() || streaming_cams.find(id) != streaming_cams.end()) {
+                if (cam_command_map.find(id) == cam_command_map.end()) {
+                    cam_command_map[id] = command;
+                } else {
+                    // Only overwrite if the command is not "end"
+                    if (cam_command_map[id] != "end") {
+                        cam_command_map[id] = command;
+                    }
+                }
+            }
         }
-        // TODO attribute, force restart
 
         // Miniscule efficiency improvement - we sleep less here in case there are more commands
         std::this_thread::sleep_for(std::chrono::milliseconds(HANDLER_MESSAGE_SLEEP));

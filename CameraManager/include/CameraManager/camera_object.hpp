@@ -51,6 +51,7 @@ class Camera {
 
         /**
          * @brief Starts the camera.
+         * Unless settings were already modified, this will restore defaults.
          * 
          * @return true if the camera started successfully.
          * @return false if the camera did not start successfully.
@@ -69,6 +70,15 @@ class Camera {
          * 
          */
         void stop_all();
+
+        /**
+         * @brief Changes an attribute on the camera within those identified.
+         * 
+         * @param attribute Attribute key to change.
+         * @param modifier Amount to change attribute by, or ignored if not applicable (white balance).
+         * @returns result of the change as identified by cap.set()
+         */
+        bool change_attribute(int attribute, int modifier);
 
         /**
          * @brief Hard resets the camera.

@@ -31,6 +31,15 @@ enum clarity {
     highest ///< 1920x1080, 20fps
 };
 
+#define GENERIC_ATTRBUTE_LIMIT_LOW 0 ///< Low limit for generic attributes on the logitech cams
+#define GENERIC_ATTRBUTE_LIMIT_HIGH 255 ///< High limit for generic attributes on the logitech cams
+#define ATTR_BRIGHTNESS 0 ///< 0-255 - no recommended changes - use as needed
+#define ATTR_CONTRAST 1 ///< 0-255 - increasing to around 150 can be helpful with consistent lighting
+#define ATTR_SATURATION 2 ///< 0-255 - increasing in general makes things very clear
+#define ATTR_SHARPNESS 3 ///< 0-255 - recommended to increase significantly at higher resolutions
+#define ATTR_GAIN 4 ///< 0-255 - some cameras automatically increase this - manual changes may not work
+#define ATTR_AUTO_WHITE_BALANCE 5 ///< 0 (disabled) or 1 (enabled) - not recommended to change
+
 /**
  * @brief settings class to configure the camera.
  * Requires device index.

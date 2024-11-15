@@ -29,7 +29,7 @@ cv::VideoCapture create_capture(settings set) {
     cap.set(cv::CAP_PROP_FRAME_HEIGHT, set.height);
     cap.set(cv::CAP_PROP_FPS, set.fps);
 
-    // // optional
+    // optional
     cap.set(cv::CAP_PROP_BRIGHTNESS, set.brightness);
     cap.set(cv::CAP_PROP_CONTRAST, set.contrast);
     cap.set(cv::CAP_PROP_SATURATION, set.saturation);

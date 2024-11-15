@@ -117,7 +117,6 @@ static std::string generate_command(uint32_t command) {
         case 5:
             /* Note attribute can be quality, brightness, contrast, saturation, sharpness, gain, or auto white balance.
              * Be mindful this means the command will have to be handled outside.
-             * This 
              */
             command_str += ATTRIBUTE_MODIFY;
             if (short_id == 0b11111) {
@@ -174,6 +173,11 @@ std::map<std::string, std::string> parse_cmd(std::string command) {
     while (pos < command.size()) {
         std::string key = command.substr(pos, 2);
         pos += 2;
+        if (key == "va") {
+            // Value is the last key and is longer than 2 characters
+            parsed[key] = command.substr(pos);
+            break;
+        }
         std::string value = command.substr(pos, 2); // FORCES TWO DIGIT NUMBERS
         parsed[key] = value;
         pos += 2; // to next pair
