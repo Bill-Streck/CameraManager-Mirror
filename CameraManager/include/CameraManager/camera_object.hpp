@@ -12,7 +12,6 @@
 
 #include "startup.hpp"
 
-// FIXME needs an attribute handler function
 /**
  * @brief Camera wrapper class. Allows general management of camera utilities.
  * 

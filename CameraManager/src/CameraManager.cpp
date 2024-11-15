@@ -9,11 +9,8 @@
  */
 
 #include "CM_include.hpp"
-#include "H264Encoder.hpp"
-#include "H264Decoder.hpp"
 #include "std_msgs/msg/u_int32.hpp"
 
-using namespace Codec;
 using namespace std::chrono_literals;
 using std::placeholders::_1;
 
@@ -157,59 +154,6 @@ int main(int argc, char* argv[]) {
     t.join();
     t2.join();
     clean_command_handler();
-    return 0;
-
-    if (0) {
-        cv::VideoCapture cap(0); // Acer camera bc why not
-        if (!cap.isOpened()) {
-            std::cerr << "Error opening camera." << std::endl;
-            return -1;
-        }
-        cap.set(cv::CAP_PROP_FRAME_WIDTH, 640);
-        cap.set(cv::CAP_PROP_FRAME_HEIGHT, 360);
-
-        auto encoder = std::make_unique<H264Encoder>();
-        auto decoder = std::make_unique<H264Decoder>();
-        uint8_t* wEncodedData = nullptr;
-        uint8_t* wDecodedData = nullptr;
-        int wPacketSize = 0;
-        int cumulated_size = 0;
-
-        while (0) {
-            cv::Mat frame;
-            cap >> frame;
-            if (frame.empty()) {
-                std::cerr << "Error capturing frame." << std::endl;
-                exit(1);
-            }
-
-            cv::imshow("Original", frame);
-            // cv::cvtColor(frame, frame, cv::COLOR_BGR2YUV_I420);
-
-            // encode
-            wEncodedData = encoder->encode(frame.data);
-            if (nullptr != wEncodedData) {
-                wPacketSize = encoder->getPacketSize();
-            }
-
-            // decode
-            wDecodedData = decoder->decode(wEncodedData, wPacketSize);
-            cv::Mat decodedFrame(360, 640, CV_8UC3);
-
-            if (nullptr != wEncodedData && nullptr != wDecodedData) {
-                decodedFrame.data = (uchar*)wDecodedData;
-                // check for overflowing data
-                std::cout << "Decoded frame size: " << decodedFrame.total() << std::endl;
-                std::cout << "expected size: " << 360*640 << std::endl;
-            }
-
-            cv::imshow("Frame", decodedFrame);
-            char c = (char) cv::waitKey(25);
-            if (c == 27) {
-                exit(1);
-            }
-        }
-    }
-
+    
     return 0;
 }

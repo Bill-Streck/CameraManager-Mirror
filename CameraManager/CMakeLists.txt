@@ -23,13 +23,6 @@ find_package(OpenCV REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(ZMQ REQUIRED libzmq)
 
-find_path(AVCODEC_INCLUDE_DIR libavcodec/avcodec.h)
-find_library(AVCODEC_LIBRARY avcodec)
-find_path(AVFORMAT_INCLUDE_DIR libavformat/avformat.h)
-find_library(AVFORMAT_LIBRARY avformat)
-find_path(AVUTIL_INCLUDE_DIR libavutil/avutil.h)
-find_library(AVUTIL_LIBRARY avutil)
-
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   set(ament_cmake_copyright_FOUND TRUE)
@@ -46,28 +39,16 @@ add_executable(CameraManager
   src/utilities/communication/streaming/streaming.cpp
   src/utilities/commands/command_board.cpp
   src/utilities/commands/command_generation.cpp
-  src/utilities/communication/compression/H264Decoder.cpp
-  src/utilities/communication/compression/H264Encoder.cpp
 )
 
 include_directories(
   ${OpenCV_INCLUDE_DIRS}
-  ${AVCODEC_INCLUDE_DIR}
-  ${AVFORMAT_INCLUDE_DIR}
-  ${AVUTIL_INCLUDE_DIR}
-  ${Boost_INCLUDE_DIRS}
-  )
+)
 
 target_link_libraries(CameraManager
   ${OpenCV_LIBS}
   ${ZMQ_LIBRARIES}
-  ${AVCODEC_LIBRARY}
-  ${AVFORMAT_LIBRARY}
-  ${AVUTIL_LIBRARY}
-  ${Boost_LIBRARIES}
-  -lboost_system
-  -lpthread
-  )
+)
 
 ament_target_dependencies(CameraManager
   rclcpp
