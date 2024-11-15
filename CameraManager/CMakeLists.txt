@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.8)
 project(camera_manager)
 
-# TODO enable optimization on final builds
+# [ ] enable optimization on final builds
 # if(NOT CMAKE_BUILD_TYPE)
 #     set(CMAKE_BUILD_TYPE Release)
 # endif()
@@ -18,6 +18,7 @@ include_directories(
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(sensor_msgs REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(ZMQ REQUIRED libzmq)
@@ -71,6 +72,7 @@ target_link_libraries(CameraManager
 ament_target_dependencies(CameraManager
   rclcpp
   std_msgs
+  sensor_msgs
 )
 
 install(TARGETS

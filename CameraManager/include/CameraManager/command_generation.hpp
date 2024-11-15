@@ -23,6 +23,7 @@ void handle_command(uint32_t command);
 /**
  * @brief Parse a command string into a map of key-value pairs.
  * To be used by the command handler and its threads.
+ * Currently dependent on string being correct (internally handled - should not be used to parse messages).
  * 
  * @param command The command string to parse.
  * @return std::map<std::string, std::string> The parsed key-value pairs.

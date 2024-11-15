@@ -10,6 +10,7 @@
 #include "command_generation.hpp"
 #include "command_board.hpp"
 #include "command_handler.hpp"
+#include "settings.hpp"
 
 /**
  * @brief Generates a command string from the raw ROS2 command.
@@ -30,12 +31,14 @@ static std::string generate_command(uint32_t command) {
     // Now get the value from bits 16:0 (yes, we did skip some) for the modification
     auto value = command & 0xFFFF; // 16:0
     // CRUCIAL: safeties must be parsed elsewhere
-    // FIXME enable safety in parsing
     auto value_str = std::to_string(value);
     switch (command_type) {
         case 0:
             command_str += LOCAL_START;
-            // TODO quality safety check
+            if (long_quality > CLARITY_PRESETS) {
+                // Invalid quality - do not handle
+                return "";
+            }
             if (long_quality_str.size() == 1) {
                 long_quality_str = "0" + long_quality_str;
             }
@@ -53,6 +56,10 @@ static std::string generate_command(uint32_t command) {
             break;
         case 1:
             command_str += STREAM_START;
+            if (long_quality > CLARITY_PRESETS) {
+                // Invalid quality - do not handle
+                return "";
+            }
             if (long_quality_str.size() == 1) {
                 long_quality_str = "0" + long_quality_str;
             }
@@ -157,9 +164,6 @@ void handle_command(uint32_t command) {
 }
 
 std::map<std::string, std::string> parse_cmd(std::string command) {
-    // TODO add some safeties here
-    // Example: 0qu10id05
-    // local start command, quality 10, camera id 5
     std::map<std::string, std::string> parsed;
     
     // Erase the first character as it is the command type

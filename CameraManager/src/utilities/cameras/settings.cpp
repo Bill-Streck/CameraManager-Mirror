@@ -20,23 +20,39 @@ void settings::use_preset(clarity c) {
     } else if (c == low) {
         width = 320;
         height = 180;
+        fps = 5;
+    } else if (c == lowish) {
+        width = 320;
+        height = 180;
         fps = 10;
     } else if (c == okay) {
+        width = 640;
+        height = 360;
+        fps = 10;
+    } else if (c == okayish) {
         width = 640;
         height = 360;
         fps = 15;
     } else if (c == medium) {
         width = 1280;
         height = 720;
-        fps = 20;
+        fps = 10;
+    } else if (c == mediumish) {
+        width = 1280;
+        height = 720;
+        fps = 15;
     } else if (c == high) {
         width = 1920;
         height = 1080;
-        fps = 25;
+        fps = 10;
+    } else if (c == higher) {
+        width = 1920;
+        height = 1080;
+        fps = 15;
     } else if (c == highest) {
-        width = 3840;
-        height = 2160;
-        fps = 30;
+        width = 1920;
+        height = 1080;
+        fps = 20;
     }
 }
 

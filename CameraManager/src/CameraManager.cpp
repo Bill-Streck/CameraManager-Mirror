@@ -11,8 +11,6 @@
 #include "CM_include.hpp"
 #include "H264Encoder.hpp"
 #include "H264Decoder.hpp"
-
-#include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/u_int32.hpp"
 
 using namespace Codec;
@@ -37,7 +35,6 @@ class CameraManager : public rclcpp::Node
         rclcpp::Subscription<std_msgs::msg::UInt32>::SharedPtr subscription_;
 };
 
-// TODO obviously, this needs removal
 class TestPub : public rclcpp::Node
 {
     public:
@@ -53,13 +50,16 @@ class TestPub : public rclcpp::Node
         uint32_t count = 0;
         uint32_t commands[6] = {
             // Start camera 7 local
-            0b000'00010'00111'000'0000'0000'0000'0000,
+            // 0b000'00010'00111'000'0000'0000'0000'0000,
+            0b000'00100'00011'000'0000'0000'0000'0000, // 3 local
             // Start camera 8 local
-            0b000'00010'01000'000'0000'0000'0000'0000,
+            // 0b000'00010'01000'000'0000'0000'0000'0000,
+            0b000'00100'00001'000'0000'0000'0000'0000, // 1 local
             // [ ] end camera 1 local
             0xFFFFFFFF,
             // Stream camera 7
-            0b001'00010'00111'000'0000'0000'0000'0000,
+            // 0b001'00010'00111'000'0000'0000'0000'0000,
+            0xFFFFFFFF,
             // [ ] end camera 3 local
             0xFFFFFFFF,
             // [ ] end camera 3 stream after delay
@@ -80,7 +80,27 @@ class TestPub : public rclcpp::Node
         rclcpp::TimerBase::SharedPtr timer_;
 };
 
-// This is a placeholder as ZMQ is going to be retired
+class TestSub : public rclcpp::Node
+{
+    public:
+        TestSub()
+        : Node("test_sub")
+        {
+            subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
+                "image_topic", 10, std::bind(&TestSub::command_callback, this, _1));
+        }
+
+    private:
+        void command_callback(const sensor_msgs::msg::Image::SharedPtr msg) const
+        {
+            cv::Mat frame(msg->height, msg->width, CV_8UC3, (void*)msg->data.data());
+            auto imname = "Frame" + msg->header.frame_id + "fromROS";
+            cv::imshow(imname, frame);
+        }
+        rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr subscription_;
+};
+
+// [ ] remove ZMQ if applicable (remove this regardless)
 static void display_received_frames() {
     // Initialize zmq context
     zmq::context_t context(1);
@@ -104,14 +124,7 @@ static void display_received_frames() {
         cv::Mat frame(height, width, CV_8UC3);
         cv::Mat new_frame(frame.size(), frame.type(), received.data());
 
-        if (cam_number == 7) {
-            cv::imshow("Frame7", new_frame);
-        } else if (cam_number == 8) {
-            cv::imshow("Frame8", new_frame);
-        } else {
-            cv::imshow("FrameERROR", new_frame);
-            std::cout << "Error: Camera number spawned in for some reason." << std::endl;
-        }
+        cv::imshow("Frame" + std::to_string(cam_number) + "in ZMQ", new_frame);
 
         char c = (char) cv::waitKey(25);
         if (c == 27) {
@@ -121,21 +134,26 @@ static void display_received_frames() {
 }
 
 int main(int argc, char* argv[]) {
+    // Start ROS2 BEFORE the command handler. If we have a test node, launch it on a thread
+    rclcpp::init(argc, argv);
+
     // Initialize any utilites with no ROS dependencies
     init_command_handler();
     auto display_thread = std::thread(display_received_frames);
 
-    // Start ROS2. If we have a test node, launch it on a thread
-    rclcpp::init(argc, argv);
     // Need to dispatch a thread for one of these (doesn't matter which)
     auto t = std::thread([]() {
         rclcpp::spin(std::make_shared<TestPub>());
+    });
+    auto t2 = std::thread([]() {
+        rclcpp::spin(std::make_shared<TestSub>());
     });
     rclcpp::spin(std::make_shared<CameraManager>());
 
     // Clean up ROS2 and other utilities
     rclcpp::shutdown();
     t.join();
+    t2.join();
     clean_command_handler();
     return 0;
 

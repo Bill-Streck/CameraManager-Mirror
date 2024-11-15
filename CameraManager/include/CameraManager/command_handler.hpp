@@ -11,9 +11,11 @@
 #ifndef COMMAND_HANDLER_H
 #define COMMAND_HANDLER_H
 
-// FIXME dumping zmq when we do ROS
+// [ ] remove ZMQ if applicable
 #include <zmq.hpp>
 #include "camera_object.hpp"
+#include "sensor_msgs/msg/image.hpp"
+#include "rclcpp/rclcpp.hpp"
 
 // XXX might be nice to have a debug ZMQ channel for string messages so the other one doesn't have to care about types
 
@@ -31,6 +33,12 @@
 #define STREAM_STOP '3' ///< Stream camera stop command. @example 305
 #define FORCE_RESTART '4' ///< Force restart command. Retains state. @example 405
 #define ATTRIBUTE_MODIFY '5' ///< Attribute modification command. @example 5qu10id05
+
+/****** Sleep Macros ******/
+
+#define HANDLER_MESSAGE_SLEEP 10 ///< Sleep time for the handler loop in milliseconds when messages are present.
+#define HANDLER_NO_MESSAGE_SLEEP 100 ///< Sleep time for the handler loop in milliseconds when no messages are present.
+#define CAMERA_FAILURE_RETRY 400 ///< Sleep time for the handler loop in milliseconds when a camera fails to start.
 
 /**
  * @brief Initializes command handler data structures and loops.

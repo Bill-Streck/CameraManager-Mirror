@@ -12,18 +12,23 @@
 
 #include <string>
 
+#define CLARITY_PRESETS 10
+
 /**
  * @brief Allows use of clarity presets. Advised.
  * 
  */
 enum clarity {
-    // TODO assign these properly and comment them
-    lowest,
-    low,
-    okay,
-    medium,
-    high,
-    highest
+    lowest, ///< 160x90, 5fps
+    low, ///< 320x180, 5fps
+    lowish, ///< 320x180, 10fps
+    okay, ///< 640x360, 10fps
+    okayish, ///< 640x360, 15fps
+    medium, ///< 1280x720, 10fps
+    mediumish, ///< 1280x720, 15fps
+    high, ///< 1920x1080, 10fps
+    higher, ///< 1920x1080, 15fps
+    highest ///< 1920x1080, 20fps
 };
 
 /**

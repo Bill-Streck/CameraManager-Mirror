@@ -13,7 +13,7 @@
 #include "settings.hpp"
 #include <opencv4/opencv2/opencv.hpp>
 
-// TODO set when possible
+// [ ] Check eventually
 #define MAX_CAMERA_ID 19 ///< Maximum camera ID allowed (Based on hardware, TBD long term)
 
 /**

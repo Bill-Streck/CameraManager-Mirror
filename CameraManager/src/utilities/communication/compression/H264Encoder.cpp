@@ -51,7 +51,6 @@ namespace Codec
     mContext->framerate    = {15, 1};
 
     // streamRate = 100?
-    // TODO check pix fmt
     mContext->pix_fmt      = AV_PIX_FMT_BGR24;
     int wRet;
     wRet = avcodec_open2(mContext, wCodec, nullptr);

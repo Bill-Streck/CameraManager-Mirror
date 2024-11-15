@@ -37,18 +37,47 @@ static bool running = true; ///< Running flag for the handler loop. Doesn't need
 
 int map_counter = 0; ///< Counter for the thread map. Respectfully, if you manage to make 2^31 threads, I will be impressed.
 
+class ImgPublisher : public rclcpp::Node
+{
+    public:
+        ImgPublisher()
+        : Node("img_publisher")
+        {
+            publisher_ = this->create_publisher<sensor_msgs::msg::Image>
+            ("image_topic", 10);
+        }
+
+        void publish_image(sensor_msgs::msg::Image msg) {
+            publisher_->publish(msg);
+        }
+
+    private:
+        // Hold a list of publishers by numeric index
+        std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Image>> publisher_;
+};
+
+static std::shared_ptr<ImgPublisher> local_ROS_publisher;
+
 static clarity preset_from_quality(int quality) {
     if (quality == 0) {
         return lowest;
     } else if (quality == 1) {
         return low;
     } else if (quality == 2) {
-        return okay;
+        return lowish;
     } else if (quality == 3) {
-        return medium;
+        return okay;
     } else if (quality == 4) {
-        return high;
+        return okayish;
     } else if (quality == 5) {
+        return medium;
+    } else if (quality == 6) {
+        return mediumish;
+    } else if (quality == 7) {
+        return high;
+    } else if (quality == 8) {
+        return higher;
+    } else if (quality == 9) {
         return highest;
     }
 
@@ -132,14 +161,16 @@ static void local_camera_start(std::string command, int tmap_index) {
         } else if (cam_local && local_cams.find(camera_id) == local_cams.end()) {
             cam_local = false;
         }
-            
-        // Get the time since epoch and the frame (getting it before should be more accurate to the time the frame was captured)
-        auto now = std::chrono::system_clock::now();
+        
+        // Get the frame
         auto frame = camera.get_current_frame();
+
+        // Get the timestamp (after frame should be most accurate)
+        auto now = std::chrono::system_clock::now();
         auto now_seconds = std::chrono::time_point_cast<std::chrono::seconds>(now);
         auto now_nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(now - now_seconds);
-        auto ts_seconds = now_seconds.time_since_epoch().count();
-        auto ts_nanoseconds = static_cast<int64_t>(now_nanoseconds.count());
+        auto ts_seconds = static_cast<uint32_t>(now_seconds.time_since_epoch().count());
+        auto ts_nanoseconds = static_cast<uint32_t>(now_nanoseconds.count());
 
         if (frame.empty()) {
             std::cout << "Camera " << camera_id << " has no frame." << std::endl;
@@ -159,8 +190,7 @@ static void local_camera_start(std::string command, int tmap_index) {
             }
             
             // Avoid the slamming of CPU usage for no reason
-            // TODO constants for sleeps
-            std::this_thread::sleep_for(std::chrono::milliseconds(400));
+            std::this_thread::sleep_for(std::chrono::milliseconds(CAMERA_FAILURE_RETRY));
             continue; // don't need to publish an empty frame
         }
 
@@ -171,6 +201,7 @@ static void local_camera_start(std::string command, int tmap_index) {
 
         // Publish the frame locally if applicable
         if (cam_local) {
+            // [ ] if applicable, remove ZMQ
             std::lock_guard<std::mutex> lock(local_publisher_mutex); // Automatically unlocks when out of scope (each loop)
             uchar cam_number = uchar(camera_id);
             zmq::message_t header(&cam_number, 1);
@@ -181,6 +212,23 @@ static void local_camera_start(std::string command, int tmap_index) {
             local_publisher.send(height, ZMQ_SNDMORE);
             local_publisher.send(width, ZMQ_SNDMORE);
             local_publisher.send(message, frame.total() * frame.elemSize());
+
+            // Put the image into a ROS2 message
+            auto msg = sensor_msgs::msg::Image();
+            msg.height = frame.rows;
+            msg.width = frame.cols;
+            msg.encoding = "bgr8"; // pixel encoding
+            msg.step = frame.step;
+            // Don't worry about endian leave it default
+            msg.data = std::vector<uint8_t>(frame.data, frame.data + frame.total() * frame.elemSize());
+
+            // Information in header
+            msg.header.stamp.sec = ts_seconds;
+            msg.header.stamp.nanosec = ts_nanoseconds;
+            msg.header.frame_id = std::to_string(camera_id);
+
+            // Publish the message
+            local_ROS_publisher->publish_image(msg);
         }
 
         // Handle a command if one is present
@@ -197,7 +245,6 @@ static void local_camera_start(std::string command, int tmap_index) {
             }
             // TODO attribute handlers - should work through the camera object directly
         }
-        // [ ] still might want to sleep here, but speed matters much more here than anywhere else
     }
 }
 
@@ -215,7 +262,7 @@ static void handler_loop() {
         std::string command = get_command();
         if (command.size() == 0) {
             // Command doesn't exist
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            std::this_thread::sleep_for(std::chrono::milliseconds(HANDLER_NO_MESSAGE_SLEEP));
             continue;
         }
         std::cout << "Received command: " << command << std::endl;
@@ -302,13 +349,17 @@ static void handler_loop() {
         // TODO attribute, force restart
 
         // Miniscule efficiency improvement - we sleep less here in case there are more commands
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        std::this_thread::sleep_for(std::chrono::milliseconds(HANDLER_MESSAGE_SLEEP));
     }
 }
 
 void begin_handler_loop() {
     // Start the handler loop in a new thread
     threads.insert(std::pair<int, std::thread>(-1, std::thread(handler_loop)));
+    local_ROS_publisher = std::make_shared<ImgPublisher>();
+    threads.insert(std::pair<int, std::thread>(-2, std::thread([]() {
+        rclcpp::spin(local_ROS_publisher);
+    })));
 }
 
 void clean_command_handler(void) {
@@ -322,8 +373,6 @@ void clean_command_handler(void) {
     context.close();
 
     // Join all threads (that should have been terminated already)
-    // TODO this is a danger point so come back when more code is written
-    // also linked to many danger points :) use timeouts
     for (auto& thread : threads) {
         // ffmpeg processes die with this application
         thread.second.join();

@@ -24,5 +24,3 @@ std::string get_command() {
     command_board.pop(); // No idea who wrote the queue library but this isn't their brightest work I'd hope.
     return command;
 }
-
-// FIXME add the debug channel here
