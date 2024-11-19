@@ -92,7 +92,7 @@ bool Camera::change_attribute(int attribute, int modifier) {
         }
 
         return cap.set(cv::CAP_PROP_SATURATION, set.saturation);
-    } else if (attribute = ATTR_SHARPNESS) {
+    } else if (attribute == ATTR_SHARPNESS) {
         set.sharpness += modifier;
 
         // Keep in bounds - no reason to deny the command
