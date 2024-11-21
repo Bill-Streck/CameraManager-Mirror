@@ -14,23 +14,26 @@
 using namespace std::chrono_literals;
 using std::placeholders::_1;
 
-class CameraManager : public rclcpp::Node
-{
-    public:
-        CameraManager()
-        : Node("camera_manager")
-        {
-            subscription_ = this->create_subscription<std_msgs::msg::UInt32>(
-                "camera_manager", 10, std::bind(&CameraManager::command_callback, this, _1));
-        }
+std::shared_ptr<CameraManager> camera_manager; 
 
-    private:
-        void command_callback(const std_msgs::msg::UInt32::SharedPtr msg) const
-        {
-            handle_command(msg->data);
-        }
-        rclcpp::Subscription<std_msgs::msg::UInt32>::SharedPtr subscription_;
-};
+// Redo as using header
+CameraManager::CameraManager() : Node("camera_manager") {
+    subscription_ = this->create_subscription<std_msgs::msg::UInt32>
+        (CM_SUB_TOPIC, 10, std::bind(&CameraManager::command_callback, this, _1));
+
+    publisher_ = this->create_publisher<std_msgs::msg::UInt32>
+        (CM_PUB_TOPIC, 10);
+}
+
+void CameraManager::publish_debug(uint32_t data) {
+    auto message = std_msgs::msg::UInt32();
+    message.data = data;
+    publisher_->publish(message);
+}
+
+void CameraManager::command_callback(const std_msgs::msg::UInt32::SharedPtr msg) const {
+    handle_command(msg->data);
+}
 
 class TestPub : public rclcpp::Node
 {
@@ -87,6 +90,9 @@ class TestSub : public rclcpp::Node
         {
             subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
                 "image_topic", 10, std::bind(&TestSub::command_callback, this, _1));
+
+            debug_listener_ = this->create_subscription<std_msgs::msg::UInt32>(
+                "camera_manager_debug", 10, std::bind(&TestSub::debug_callback, this, _1));
         }
 
     private:
@@ -96,7 +102,14 @@ class TestSub : public rclcpp::Node
             auto imname = "Frame" + msg->header.frame_id + "fromROS";
             cv::imshow(imname, frame);
         }
+
+        void debug_callback(const std_msgs::msg::UInt32::SharedPtr msg) const
+        {
+            std::cout << "Received debug message: " << msg->data << std::endl;
+        }
+
         rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr subscription_;
+        rclcpp::Subscription<std_msgs::msg::UInt32>::SharedPtr debug_listener_;
 };
 
 // [ ] remove ZMQ if applicable (remove this regardless)
@@ -147,7 +160,9 @@ int main(int argc, char* argv[]) {
     auto t2 = std::thread([]() {
         rclcpp::spin(std::make_shared<TestSub>());
     });
-    rclcpp::spin(std::make_shared<CameraManager>());
+
+    camera_manager = std::make_shared<CameraManager>();
+    rclcpp::spin(camera_manager);
 
     // Clean up ROS2 and other utilities
     rclcpp::shutdown();

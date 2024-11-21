@@ -16,6 +16,7 @@
 #include "command_handler.hpp"
 #include "command_board.hpp"
 #include "command_generation.hpp"
+#include "CameraManagerNode.hpp"
 
 #define ZMQ_REMOTE_REC "tcp://localhost:7777"
 #define ZMQ_REMOTE_PUB "tcp://*:8888"

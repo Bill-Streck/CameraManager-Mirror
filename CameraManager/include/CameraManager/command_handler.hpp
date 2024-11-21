@@ -17,8 +17,6 @@
 #include "sensor_msgs/msg/image.hpp"
 #include "rclcpp/rclcpp.hpp"
 
-// XXX might be nice to have a debug ZMQ channel for string messages so the other one doesn't have to care about types
-
 /******* ZMQ addresses *******/
 /***** TCP is fine here *****/
 

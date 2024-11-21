@@ -12,12 +12,15 @@
 #include "streaming.hpp"
 #include "command_generation.hpp"
 #include "command_board.hpp"
+#include "CameraManagerNode.hpp"
 #include <iostream>
 #include <thread>
 #include <mutex>
 #ifndef SIGKILL
     #include <signal.h>
 #endif
+
+extern std::shared_ptr<CameraManager> camera_manager;
 
 static zmq::context_t context; ///< ZMQ context for communication.
 static zmq::socket_t local_publisher; ///< ZMQ local publisher socket.
@@ -141,7 +144,11 @@ static void local_camera_start(std::string command, int tmap_index) {
             if (pipe == nullptr) {
                 std::cerr << "Error starting ffmpeg process for camera " << camera_id << std::endl;
                 // TODO send a verification message
-                cam_command_map[camera_id] = "end";
+                
+                // Erase from streaming cams for now
+                if (streaming_cams.find(camera_id) != streaming_cams.end()) {
+                    streaming_cams.erase(camera_id);
+                }
             }
             cam_streaming = true;
         } else if (cam_streaming && streaming_cams.find(camera_id) == streaming_cams.end()) {
@@ -256,9 +263,9 @@ static void local_camera_start(std::string command, int tmap_index) {
                     // TODO send failure message
                     std::cerr << "Error changing attribute " << attribute << " for camera " << camera_id << std::endl;
                 }
-                // TODO temp
-                auto b = camera.get_capture().get(cv::CAP_PROP_BRIGHTNESS);
-                std::cout << "Brightness: " << b << std::endl;
+
+                // Remove the command from the map
+                cam_command_map.erase(camera_id);
             }
         }
     }
