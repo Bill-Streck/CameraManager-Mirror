@@ -16,13 +16,15 @@ using std::placeholders::_1;
 
 std::shared_ptr<CameraManager> camera_manager; 
 
-// Redo as using header
 CameraManager::CameraManager() : Node("camera_manager") {
     subscription_ = this->create_subscription<std_msgs::msg::UInt32>
         (CM_SUB_TOPIC, 10, std::bind(&CameraManager::command_callback, this, _1));
 
     publisher_ = this->create_publisher<std_msgs::msg::UInt32>
         (CM_PUB_TOPIC, 10);
+
+    image_publisher_ = this->create_publisher<sensor_msgs::msg::Image>
+        (CM_IMAGE_TOPIC, 10);
 }
 
 void CameraManager::publish_debug(uint32_t data) {
@@ -33,6 +35,10 @@ void CameraManager::publish_debug(uint32_t data) {
 
 void CameraManager::command_callback(const std_msgs::msg::UInt32::SharedPtr msg) const {
     handle_command(msg->data);
+}
+
+void CameraManager::publish_image(sensor_msgs::msg::Image msg) {
+    image_publisher_->publish(msg);
 }
 
 class TestPub : public rclcpp::Node
@@ -100,7 +106,12 @@ class TestSub : public rclcpp::Node
         {
             cv::Mat frame(msg->height, msg->width, CV_8UC3, (void*)msg->data.data());
             auto imname = "Frame" + msg->header.frame_id + "fromROS";
-            cv::imshow(imname, frame);
+            try {
+                cv::imshow(imname, frame);
+            } catch (const cv::Exception& e) {
+                // no screen present
+                return;
+            }
         }
 
         void debug_callback(const std_msgs::msg::UInt32::SharedPtr msg) const
@@ -136,7 +147,12 @@ static void display_received_frames() {
         cv::Mat frame(height, width, CV_8UC3);
         cv::Mat new_frame(frame.size(), frame.type(), received.data());
 
-        cv::imshow("Frame" + std::to_string(cam_number) + "in ZMQ", new_frame);
+        try {
+            cv::imshow("Frame" + std::to_string(cam_number) + "in ZMQ", new_frame);
+        } catch (const cv::Exception& e) {
+            // no screen present
+            return;
+        }
 
         char c = (char) cv::waitKey(25);
         if (c == 27) {

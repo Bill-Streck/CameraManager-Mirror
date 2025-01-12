@@ -12,6 +12,8 @@
 #define STREAMING_H
 
 #include <string>
+#include <tuple>
+#include <iostream>
 #include "settings.hpp"
 #include "startup.hpp"
 
@@ -23,7 +25,8 @@
  * @param set Settings object for the camera.
  * @param camera_id Camera device index.
  * @return FILE* pointer to the pipe for the ffmpeg process. Can pclose from here. nullptr on error.
+ * @return int File descriptor for the process output FIFO. -1 on error.
  */
-FILE* ffmpeg_stream_camera(settings set, int camera_id);
+std::tuple<FILE*, int> ffmpeg_stream_camera(settings set, int camera_id);
 
 #endif

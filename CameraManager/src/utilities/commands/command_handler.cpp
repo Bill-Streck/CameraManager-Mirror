@@ -38,28 +38,7 @@ static std::mutex local_publisher_mutex; ///< Mutex for local publisher socket.
 
 static bool running = true; ///< Running flag for the handler loop. Doesn't need to be atomic.
 
-int map_counter = 0; ///< Counter for the thread map. Respectfully, if you manage to make 2^31 threads, I will be impressed.
-
-class ImgPublisher : public rclcpp::Node
-{
-    public:
-        ImgPublisher()
-        : Node("img_publisher")
-        {
-            publisher_ = this->create_publisher<sensor_msgs::msg::Image>
-            ("image_topic", 10);
-        }
-
-        void publish_image(sensor_msgs::msg::Image msg) {
-            publisher_->publish(msg);
-        }
-
-    private:
-        // Hold a list of publishers by numeric index
-        std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Image>> publisher_;
-};
-
-static std::shared_ptr<ImgPublisher> local_ROS_publisher;
+int map_counter = 0; ///< Counter for the thread map. Not right to count up, but if you find a way to overflow let me know because that's impressive.
 
 static clarity preset_from_quality(int quality) {
     if (quality == 0) {
@@ -135,12 +114,15 @@ static void local_camera_start(std::string command, int tmap_index) {
     FILE* pipe = nullptr;
     auto cam_streaming = false;
     auto cam_local = false;
+    int inputfd = -1;
 
     // Capture loop
     while (running) {
         // Check if we should be streaming or should close a stream
         if (!cam_streaming && streaming_cams.find(camera_id) != streaming_cams.end()) {
-            pipe = ffmpeg_stream_camera(set, camera_id);
+            std::tuple<FILE*, int> res = ffmpeg_stream_camera(set, camera_id);
+            pipe = std::get<0>(res);
+            inputfd = std::get<1>(res);
             if (pipe == nullptr) {
                 std::cerr << "Error starting ffmpeg process for camera " << camera_id << std::endl;
                 // TODO send a verification message
@@ -235,7 +217,7 @@ static void local_camera_start(std::string command, int tmap_index) {
             msg.header.frame_id = std::to_string(camera_id);
 
             // Publish the message
-            local_ROS_publisher->publish_image(msg);
+            camera_manager->publish_image(msg);
         }
 
         // Handle a command if one is present
@@ -398,10 +380,6 @@ static void handler_loop() {
 void begin_handler_loop() {
     // Start the handler loop in a new thread
     threads.insert(std::pair<int, std::thread>(-1, std::thread(handler_loop)));
-    local_ROS_publisher = std::make_shared<ImgPublisher>();
-    threads.insert(std::pair<int, std::thread>(-2, std::thread([]() {
-        rclcpp::spin(local_ROS_publisher);
-    })));
 }
 
 void clean_command_handler(void) {

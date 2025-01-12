@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.8)
 project(camera_manager)
 
 # [ ] enable optimization on final builds
+# [ ] also may wanna make this unconditional, idk what colcon does
 # if(NOT CMAKE_BUILD_TYPE)
 #     set(CMAKE_BUILD_TYPE Release)
 # endif()

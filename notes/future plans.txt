@@ -4,7 +4,9 @@ Intended to define future work both in and out of camera manager
 Transition CM and things that use it (rover side only) to ZMQ
  - look at old commits for this
  - Will need to get people working with YOLO on board
+ - Please reach out to me (williamrstreck@gmail.com) if I am not here while this is being developed and you need help.
 
 Fix Decoder (if I haven't already)
  - No legitimate reason to be using FFMPEG but have not been able to get encoder-decoder pair working
+    - XXX I'll link the example project I worked off of.
  - See if we can use something nicer than H264 and run the options comprehensively
