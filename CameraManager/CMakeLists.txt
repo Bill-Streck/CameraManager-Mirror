@@ -22,7 +22,6 @@ find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(ZMQ REQUIRED libzmq)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -48,7 +47,6 @@ include_directories(
 
 target_link_libraries(CameraManager
   ${OpenCV_LIBS}
-  ${ZMQ_LIBRARIES}
 )
 
 ament_target_dependencies(CameraManager

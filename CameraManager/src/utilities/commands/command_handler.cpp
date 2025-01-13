@@ -22,11 +22,8 @@
 
 extern std::shared_ptr<CameraManager> camera_manager;
 
-static zmq::context_t context; ///< ZMQ context for communication.
-static zmq::socket_t local_publisher; ///< ZMQ local publisher socket.
-
 static std::map<int, Camera> cameras; ///< Vector of camera objects. Used for seeing if a camera is on.
-static std::map<int, std::string> local_cams; ///< Map of cameras that are being used locally. Used to manage ZMQ workflow.
+static std::map<int, std::string> local_cams; ///< Map of cameras that are being used locally.
 static std::map<int, std::string> streaming_cams; ///< Map of cameras that are streaming. Used for ffmpeg process management.
 
 static std::map<int, std::string> cam_command_map; ///< Vector of end flags for each thread, regardless of type.
@@ -68,12 +65,6 @@ static clarity preset_from_quality(int quality) {
 }
 
 void init_command_handler(void) {
-    // ZMQ
-    context = zmq::context_t(1);
-
-    local_publisher = zmq::socket_t(context, ZMQ_PUB);
-    local_publisher.bind(ZMQ_LOCAL_PUB);
-
     // Start thread handler loop
     begin_handler_loop();
 }
@@ -144,7 +135,7 @@ static void local_camera_start(std::string command, int tmap_index) {
             cam_streaming = false; // pipe was closed somehow I guess
         }
 
-        // Check if we should be running local ZMQ comms
+        // Check if we should be running local comms
         if (!cam_local && local_cams.find(camera_id) != local_cams.end()) {
             cam_local = true;
         } else if (cam_local && local_cams.find(camera_id) == local_cams.end()) {
@@ -190,18 +181,7 @@ static void local_camera_start(std::string command, int tmap_index) {
 
         // Publish the frame locally if applicable
         if (cam_local) {
-            // [ ] if applicable, remove ZMQ
             std::lock_guard<std::mutex> lock(local_publisher_mutex); // Automatically unlocks when out of scope (each loop)
-            uchar cam_number = uchar(camera_id);
-            zmq::message_t header(&cam_number, 1);
-            zmq::message_t height(&frame.rows, sizeof(frame.rows));
-            zmq::message_t width(&frame.cols, sizeof(frame.cols));
-            zmq::message_t message(frame.data, frame.total() * frame.elemSize());
-            local_publisher.send(header, ZMQ_SNDMORE);
-            local_publisher.send(height, ZMQ_SNDMORE);
-            local_publisher.send(width, ZMQ_SNDMORE);
-            local_publisher.send(message, frame.total() * frame.elemSize());
-
             // Put the image into a ROS2 message
             auto msg = sensor_msgs::msg::Image();
             msg.height = frame.rows;
@@ -385,12 +365,6 @@ void begin_handler_loop() {
 void clean_command_handler(void) {
     // Signal end for all threads
     running = false;
-
-    // Close the publisher
-    local_publisher.close();
-
-    // Terminate the context
-    context.close();
 
     // Join all threads (that should have been terminated already)
     for (auto& thread : threads) {

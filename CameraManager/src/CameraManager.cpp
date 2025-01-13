@@ -47,7 +47,7 @@ class TestPub : public rclcpp::Node
         TestPub()
         : Node("test_pub")
         {
-            publisher_ = this->create_publisher<std_msgs::msg::UInt32>("camera_manager", 10);
+            publisher_ = this->create_publisher<std_msgs::msg::UInt32>(CM_SUB_TOPIC, 10);
             timer_ = this->create_wall_timer(
                 500ms, std::bind(&TestPub::timer_callback, this));
         }
@@ -95,10 +95,10 @@ class TestSub : public rclcpp::Node
         : Node("test_sub")
         {
             subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
-                "image_topic", 10, std::bind(&TestSub::command_callback, this, _1));
+                CM_IMAGE_TOPIC, 10, std::bind(&TestSub::command_callback, this, _1));
 
             debug_listener_ = this->create_subscription<std_msgs::msg::UInt32>(
-                "camera_manager_debug", 10, std::bind(&TestSub::debug_callback, this, _1));
+                CM_PUB_TOPIC, 10, std::bind(&TestSub::debug_callback, this, _1));
         }
 
     private:
@@ -108,6 +108,7 @@ class TestSub : public rclcpp::Node
             auto imname = "Frame" + msg->header.frame_id + "fromROS";
             try {
                 cv::imshow(imname, frame);
+                cv::waitKey(1);
             } catch (const cv::Exception& e) {
                 // no screen present
                 return;
@@ -123,51 +124,12 @@ class TestSub : public rclcpp::Node
         rclcpp::Subscription<std_msgs::msg::UInt32>::SharedPtr debug_listener_;
 };
 
-// [ ] remove ZMQ if applicable (remove this regardless)
-static void display_received_frames() {
-    // Initialize zmq context
-    zmq::context_t context(1);
-
-    zmq::socket_t subscriber(context, ZMQ_SUB);
-    subscriber.connect("tcp://localhost:6666");
-    subscriber.setsockopt(ZMQ_SUBSCRIBE, "", 0); // Subscribe to all messages
-
-    while (1) {        
-        // Receive message (blocking)
-        zmq::message_t received;
-        subscriber.recv(&received);
-        uchar cam_number = *(static_cast<uchar*>(received.data()));
-        subscriber.recv(&received); // height
-        int height = *(static_cast<int*>(received.data()));
-        subscriber.recv(&received); // width
-        int width = *(static_cast<int*>(received.data()));
-        subscriber.recv(&received); // frame
-
-        // temporarily make placeholder size and type
-        cv::Mat frame(height, width, CV_8UC3);
-        cv::Mat new_frame(frame.size(), frame.type(), received.data());
-
-        try {
-            cv::imshow("Frame" + std::to_string(cam_number) + "in ZMQ", new_frame);
-        } catch (const cv::Exception& e) {
-            // no screen present
-            return;
-        }
-
-        char c = (char) cv::waitKey(25);
-        if (c == 27) {
-            break;
-        }
-    }
-}
-
 int main(int argc, char* argv[]) {
     // Start ROS2 BEFORE the command handler. If we have a test node, launch it on a thread
     rclcpp::init(argc, argv);
 
     // Initialize any utilites with no ROS dependencies
     init_command_handler();
-    auto display_thread = std::thread(display_received_frames);
 
     // Need to dispatch a thread for one of these (doesn't matter which)
     auto t = std::thread([]() {
@@ -180,6 +142,7 @@ int main(int argc, char* argv[]) {
     camera_manager = std::make_shared<CameraManager>();
     rclcpp::spin(camera_manager);
 
+    // FIXME we actually do need a way down here
     // Clean up ROS2 and other utilities
     rclcpp::shutdown();
     t.join();

@@ -15,6 +15,10 @@
 // TODO function accessible globally for cleaning pipes from the index (on end and shutdown)
 // TODO same function on startup for cleaning purposes
 
+static std::string make_pipe_name(int camera_id) {
+    return "/tmp/camera" + std::to_string(camera_id) + ".fifo";
+}
+
 std::tuple<FILE*, int> ffmpeg_stream_camera(settings set, int camera_id) {
     // std::string command = "ffmpeg -y -f rawvideo -pix_fmt bgr24 -s " + 
     // std::to_string(int(set.width)) + "x" + std::to_string(int(set.height)) +
@@ -22,8 +26,8 @@ std::tuple<FILE*, int> ffmpeg_stream_camera(settings set, int camera_id) {
     // " -f matroska udp://localhost:9999"; // TODO actual outputs (no idea how to choose these yet :) )
 
     // Create the pipe (fifo) for the ffmpeg process to communicate back to our server
-    std::string pipe_name = "/tmp/camera" + std::to_string(camera_id) + ".fifo";
-    mkfifo(pipe_name.c_str(), 0666);
+    std::string pipe_name = make_pipe_name(camera_id);
+    mkfifo(pipe_name.c_str(), FIFO_MODE);
 
     // H264 fallback (5-6x the bitrate, but much lower latency)
     std::string command = "ffmpeg -y -f rawvideo -pix_fmt bgr24 -s " + 

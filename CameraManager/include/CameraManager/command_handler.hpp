@@ -2,7 +2,7 @@
  * @file command_handler.hpp
  * @author William Streck
  * @brief command handler structure.
- * Command handler should have utilities for thread management and command execution over zmq.
+ * Command handler should have utilities for thread management.
  * @version 0.1
  * @date 2024-10-28
  * 
@@ -11,17 +11,9 @@
 #ifndef COMMAND_HANDLER_H
 #define COMMAND_HANDLER_H
 
-// [ ] remove ZMQ if applicable
-#include <zmq.hpp>
 #include "camera_object.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include "rclcpp/rclcpp.hpp"
-
-/******* ZMQ addresses *******/
-/***** TCP is fine here *****/
-
-#define ZMQ_LOCAL_REC "tcp://localhost:5555" ///< Local receiver address. Not used by the command handler.
-#define ZMQ_LOCAL_PUB "tcp://*:6666" ///< Local publisher address.
 
 /******* Command ids *******/
 
@@ -51,7 +43,7 @@ void init_command_handler(void);
 void begin_handler_loop(void);
 
 /**
- * @brief Cleans all zmq sockets, context, and threaded resources.
+ * @brief Cleans all threaded or held resources.
  * 
  */
 void clean_command_handler(void);
