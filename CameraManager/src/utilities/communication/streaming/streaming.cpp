@@ -23,7 +23,7 @@ std::tuple<FILE*, int> ffmpeg_stream_camera(settings set, int camera_id) {
     // std::string command = "ffmpeg -y -f rawvideo -pix_fmt bgr24 -s " + 
     // std::to_string(int(set.width)) + "x" + std::to_string(int(set.height)) +
     // " -r " + std::to_string(set.fps) + " -i - -c:v libsvtav1 -preset " + AV1_PRESET +
-    // " -f matroska udp://localhost:9999"; // TODO actual outputs (no idea how to choose these yet :) )
+    // " -f matroska udp://localhost:9999";
 
     // Create the pipe (fifo) for the ffmpeg process to communicate back to our server
     std::string pipe_name = make_pipe_name(camera_id);

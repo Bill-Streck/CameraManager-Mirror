@@ -18,7 +18,7 @@
 #include "startup.hpp"
 
 #define AV1_PRESET "11" ///< AV1 preset for ffmpeg.
-#define FIFO_MODE 0666 ///< Mode for IPC FIFO
+#define FIFO_MODE 0666 ///< Mode for IPC FIFO. 6 -> 4 (read) + 2 (write) + 0 (no execution); x3 -> owner, groups, others.
 
 /**
  * @brief Starts the ffmpeg streaming process for a camera. Consumes the device resource.
