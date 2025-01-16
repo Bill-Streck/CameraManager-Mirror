@@ -16,22 +16,24 @@
 #include <iostream>
 #include <thread>
 #include <mutex>
+
+// Compatibility with certain development configurations (e.g. Wanderer2)
 #ifndef SIGKILL
     #include <signal.h>
 #endif
 
 extern std::shared_ptr<CameraManager> camera_manager;
 
-static std::map<int, Camera> cameras; ///< Vector of camera objects. Used for seeing if a camera is on.
+static std::map<int, Camera> cameras; ///< Map of camera objects. Used for seeing if a camera is on.
 static std::map<int, std::string> local_cams; ///< Map of cameras that are being used locally.
 static std::map<int, std::string> streaming_cams; ///< Map of cameras that are streaming. Used for ffmpeg process management.
 
-static std::map<int, std::string> cam_command_map; ///< Vector of end flags for each thread, regardless of type.
+static std::map<int, std::string> cam_command_map; ///< Map of end flags for each thread, regardless of type.
 
-static std::map<int, std::thread> threads; ///< Vector of threads for command execution.
-static std::list<int> threads_end; ///< Vector of threads that have ended.
+static std::map<int, std::thread> threads; ///< Map of threads for command execution.
+static std::list<int> threads_end; ///< List of threads that have ended.
 
-static std::mutex local_publisher_mutex; ///< Mutex for local publisher socket.
+static std::mutex publisher_mutex; ///< Mutex for local publisher socket.
 
 static bool running = true; ///< Running flag for the handler loop. Doesn't need to be atomic.
 
@@ -69,6 +71,7 @@ void init_command_handler(void) {
     begin_handler_loop();
 }
 
+// TODO rename and comment
 static void local_camera_start(std::string command, int tmap_index) {
     // Parse the command
     auto parsed = parse_cmd(command);
@@ -80,7 +83,7 @@ static void local_camera_start(std::string command, int tmap_index) {
         camera_id = std::stoi(parsed["id"]);
     }
 
-    if (cameras.find(camera_id) != cameras.end() || camera_id == -400 || camera_id > MAX_CAMERA_ID) {
+    if (camera_id == -400 || camera_id > MAX_CAMERA_ID) {
         // Camera is already on
         // TODO we should send a string message back to the client
         threads_end.push_back(tmap_index); // Clean thread
@@ -101,19 +104,16 @@ static void local_camera_start(std::string command, int tmap_index) {
         // Please note this will be caught and handled inside the while loop - I am avoiding duplicate code
         std::cerr << e.what() << '\n';
     }
-    cameras.insert(std::pair<int, Camera>(camera_id, camera));
+    cameras[camera_id] = camera;
     FILE* pipe = nullptr;
     auto cam_streaming = false;
     auto cam_local = false;
-    int inputfd = -1;
 
     // Capture loop
     while (running) {
         // Check if we should be streaming or should close a stream
         if (!cam_streaming && streaming_cams.find(camera_id) != streaming_cams.end()) {
-            std::tuple<FILE*, int> res = ffmpeg_stream_camera(set, camera_id);
-            pipe = std::get<0>(res);
-            inputfd = std::get<1>(res);
+            FILE* pipe = ffmpeg_stream_camera(set, camera_id);
             if (pipe == nullptr) {
                 std::cerr << "Error starting ffmpeg process for camera " << camera_id << std::endl;
                 // TODO send a verification message
@@ -153,7 +153,7 @@ static void local_camera_start(std::string command, int tmap_index) {
         auto ts_nanoseconds = static_cast<uint32_t>(now_nanoseconds.count());
 
         if (frame.empty()) {
-            std::cout << "Camera " << camera_id << " has no frame." << std::endl;
+            std::cerr << "Camera " << camera_id << " has no frame." << std::endl;
             try {
                 camera.start();
             } catch(const std::exception& e) {
@@ -181,7 +181,7 @@ static void local_camera_start(std::string command, int tmap_index) {
 
         // Publish the frame locally if applicable
         if (cam_local) {
-            std::lock_guard<std::mutex> lock(local_publisher_mutex); // Automatically unlocks when out of scope (each loop)
+            std::lock_guard<std::mutex> lock(publisher_mutex); // Automatically unlocks when out of scope (each loop)
             // Put the image into a ROS2 message
             auto msg = sensor_msgs::msg::Image();
             msg.height = frame.rows;
@@ -265,6 +265,8 @@ static void handler_loop() {
                 threads.insert(std::pair<int, std::thread>(map_counter, std::thread(local_camera_start, command, map_counter)));
                 std::cout << "Thread " << map_counter << " has been created." << std::endl;
                 map_counter++;
+                auto camera = Camera();
+                cameras.insert(std::pair<int, Camera>(id, camera));
             }
 
             // Tell the camera to start locally if it isn't already
@@ -286,6 +288,8 @@ static void handler_loop() {
                 threads.insert(std::pair<int, std::thread>(map_counter, std::thread(local_camera_start, command, map_counter)));
                 std::cout << "Thread " << map_counter << " has been created." << std::endl;
                 map_counter++;
+                auto camera = Camera();
+                cameras.insert(std::pair<int, Camera>(id, camera));
             }
             
             // Tell the camera to start streaming if it isn't already
@@ -355,6 +359,8 @@ static void handler_loop() {
         // Miniscule efficiency improvement - we sleep less here in case there are more commands
         std::this_thread::sleep_for(std::chrono::milliseconds(HANDLER_MESSAGE_SLEEP));
     }
+
+    // FIXME handler cleanup (end cameras, end threads, ...)
 }
 
 void begin_handler_loop() {

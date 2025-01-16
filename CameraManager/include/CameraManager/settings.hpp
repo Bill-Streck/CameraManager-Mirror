@@ -44,7 +44,8 @@ enum clarity {
  * @brief settings class to configure the camera.
  * Requires device index.
  * Supports several optional parameters,
- * @note default values are set to 50 for all ranged optional parameters.
+ * @note Default values are from the logitech cameras used on the rover.
+ * Other cameras need to manually set their settings or pull the default value from the V4L2 driver.
  */
 class settings {
     public:

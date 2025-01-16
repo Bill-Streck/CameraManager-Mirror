@@ -17,5 +17,6 @@
 #include "command_board.hpp"
 #include "command_generation.hpp"
 #include "CameraManagerNode.hpp"
+#include "streaming.hpp"
 
 #endif

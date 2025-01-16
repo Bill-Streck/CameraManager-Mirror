@@ -58,9 +58,10 @@ class TestPub : public rclcpp::Node
             // Start camera 7 local
             // 0b000'00010'00111'000'0000'0000'0000'0000,
             0b000'00100'00011'000'0000'0000'0000'0000, // 3 local
+            0b001'00100'00011'000'0000'0000'0000'0000, // 3 stream
             // Start camera 8 local
             // 0b000'00010'01000'000'0000'0000'0000'0000,
-            0b000'00100'00001'000'0000'0000'0000'0000, // 1 local
+            // 0b000'00100'00001'000'0000'0000'0000'0000, // 1 local
             // end camera 1 local
             0xFFFFFFFF,
             // Stream camera 7
@@ -77,12 +78,13 @@ class TestPub : public rclcpp::Node
             if (count < 6) {
                 message.data = commands[count];
                 count++;
+                publisher_->publish(message);
             } else {
                 // message.data = 0xFFFFFFFF;
                 // slowly increase brightness of camera 1 by 10
                 message.data = 0b101'00001'0000'0000'0000'0000'0000'1010;
             }
-            publisher_->publish(message);
+            // publisher_->publish(message);
         }
         rclcpp::Publisher<std_msgs::msg::UInt32>::SharedPtr publisher_;
         rclcpp::TimerBase::SharedPtr timer_;
@@ -124,9 +126,30 @@ class TestSub : public rclcpp::Node
         rclcpp::Subscription<std_msgs::msg::UInt32>::SharedPtr debug_listener_;
 };
 
+static void CM_shutdown(void) {
+    rclcpp::shutdown();
+    clean_command_handler();
+    end_server();
+}
+
+void signal_handler(int signum) {
+    std::cout << "Interrupt signal (" << signum << ") received." << std::endl;
+
+    CM_shutdown();
+
+    while (true) {
+        exit(signum);
+    }
+}
+
 int main(int argc, char* argv[]) {
+    std::signal(SIGINT, signal_handler);
+
     // Start ROS2 BEFORE the command handler. If we have a test node, launch it on a thread
     rclcpp::init(argc, argv);
+
+    // Start the server thread so its resources are ready immediately
+    start_server();
 
     // Initialize any utilites with no ROS dependencies
     init_command_handler();
@@ -145,9 +168,10 @@ int main(int argc, char* argv[]) {
     // FIXME we actually do need a way down here
     // Clean up ROS2 and other utilities
     rclcpp::shutdown();
-    t.join();
-    t2.join();
+    // t.join();
+    // t2.join();
     clean_command_handler();
+    end_server();
     
     return 0;
 }

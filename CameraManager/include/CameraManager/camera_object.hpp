@@ -21,7 +21,6 @@ class Camera {
         /**
          * @brief Construct a new Camera object
          * 
-         * @param idx camera index based on dev rules
          */
         Camera();
 

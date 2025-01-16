@@ -33,15 +33,21 @@ class CameraManager : public rclcpp::Node
         /**
          * @brief Publishes an image message to the
          * 
-         * @param msg 
+         * @param msg Image to publish
          */
         void publish_image(sensor_msgs::msg::Image msg);
 
     private:
+        /**
+         * @brief Processes a CameraManager input message command
+         * 
+         * @param msg 
+         */
         void command_callback(const std_msgs::msg::UInt32::SharedPtr msg) const;
-        rclcpp::Subscription<std_msgs::msg::UInt32>::SharedPtr subscription_; ///< Camera command subscription.
-        rclcpp::Publisher<std_msgs::msg::UInt32>::SharedPtr publisher_; ///< Camera debug response publisher.
-        rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_publisher_; ///< Camera image publisher.
+
+        rclcpp::Subscription<std_msgs::msg::UInt32>::SharedPtr subscription_; ///< CameraManager command subscription.
+        rclcpp::Publisher<std_msgs::msg::UInt32>::SharedPtr publisher_; ///< CameraManager debug response publisher.
+        rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_publisher_; ///< CameraManager image publisher.
 };
 
 extern std::shared_ptr<CameraManager> camera_manager;
