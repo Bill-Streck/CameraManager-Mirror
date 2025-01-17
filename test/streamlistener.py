@@ -2,6 +2,7 @@ import time
 import subprocess
 
 BASE = 53838
+# BASE = 33838
 
 def port_from_camera(cid:int):
     return str(BASE + cid)

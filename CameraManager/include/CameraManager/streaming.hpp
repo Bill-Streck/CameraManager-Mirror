@@ -13,15 +13,36 @@
 
 #include <string>
 #include <iostream>
+#include <sys/stat.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
 #include "settings.hpp"
 #include "startup.hpp"
 
 #define AV1_PRESET "11" ///< AV1 preset for ffmpeg.
 #define FIFO_MODE 0666 ///< Mode for IPC FIFO. 6 -> 4 (read) + 2 (write) + 0 (no execution); x3 -> owner, groups, others.
-#define STREAM_PORT_BASE 53838 ///< Port base. Ensure nobody is using this range
+#define STREAM_PORT_BASE 53838 ///< Port base. Ensure nobody is using this range on the base station.
+#define LOCAL_PORT_BASE 33838 ///< Localhost port base. Ensure nobody is using this range locally.
 #define BROADCAST_IP_ADDR "255.255.255.255" ///< Standard UNIX broadcasting IP address
 #define LOCALHOST_IP_ADDR "127.0.0.1" ///< Standard localhost network target
 #define BROADCAST_ENABLED 1 ///< Just represents a true broadcast parameter value
+
+/**
+ * @brief Makes the lcoal stream port number for a camera to be fed into ffmpeg
+ * 
+ * @param camera_id Camera id
+ * @return int Local port number
+ */
+int local_port_from_camera_id(int camera_id);
+
+/**
+ * @brief Makes the remote stream port number for a camera to be broadcasted
+ * 
+ * @param camera_id Camera id
+ * @return int Stream port number
+ */
+int stream_port_from_camera_id(int camera_id);
 
 /**
  * @brief Starts the server thread.
@@ -77,5 +98,20 @@ class SimpleServer
          */
         int initialize_socket(void);
 };
+
+/**
+ * @brief Creates a socket for broadcasting data
+ * 
+ * @return int Socket descriptor
+ */
+int initialize_stream_socket(void);
+
+/**
+ * @brief Creates a socket for listening to a camera
+ * 
+ * @param local_port Local port to listen on
+ * @return int Socket descriptor
+ */
+int initialize_local_socket(int local_port);
 
 #endif

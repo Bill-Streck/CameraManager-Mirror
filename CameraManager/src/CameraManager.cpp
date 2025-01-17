@@ -129,7 +129,6 @@ class TestSub : public rclcpp::Node
 static void CM_shutdown(void) {
     rclcpp::shutdown();
     clean_command_handler();
-    end_server();
 }
 
 void signal_handler(int signum) {
@@ -147,9 +146,6 @@ int main(int argc, char* argv[]) {
 
     // Start ROS2 BEFORE the command handler. If we have a test node, launch it on a thread
     rclcpp::init(argc, argv);
-
-    // Start the server thread so its resources are ready immediately
-    start_server();
 
     // Initialize any utilites with no ROS dependencies
     init_command_handler();
@@ -171,7 +167,6 @@ int main(int argc, char* argv[]) {
     // t.join();
     // t2.join();
     clean_command_handler();
-    end_server();
     
     return 0;
 }

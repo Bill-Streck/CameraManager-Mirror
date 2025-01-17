@@ -17,6 +17,8 @@
 #include <thread>
 #include <mutex>
 
+// TODO split these functions out into different files
+
 // Compatibility with certain development configurations (e.g. Wanderer2)
 #ifndef SIGKILL
     #include <signal.h>
@@ -104,16 +106,30 @@ static void local_camera_start(std::string command, int tmap_index) {
         // Please note this will be caught and handled inside the while loop - I am avoiding duplicate code
         std::cerr << e.what() << '\n';
     }
+
+    // Get basic camera variables ready
     cameras[camera_id] = camera;
     FILE* pipe = nullptr;
     auto cam_streaming = false;
     auto cam_local = false;
 
+    // Specific members for streaming
+    // FIXME still need a small amount of logic for safely closing all the sockets
+    const int broadcast_enabled = BROADCAST_ENABLED;
+    int stream_port = stream_port_from_camera_id(camera_id);
+    int local_port = local_port_from_camera_id(camera_id);
+    sockaddr_in broadcast_address;
+    broadcast_address.sin_family = AF_INET;
+    broadcast_address.sin_addr.s_addr = inet_addr(BROADCAST_IP_ADDR);
+    broadcast_address.sin_port = htons(stream_port);
+    int stream_sockfd = initialize_stream_socket();
+    int local_sockfd = initialize_local_socket(local_port);
+
     // Capture loop
     while (running) {
         // Check if we should be streaming or should close a stream
         if (!cam_streaming && streaming_cams.find(camera_id) != streaming_cams.end()) {
-            FILE* pipe = ffmpeg_stream_camera(set, camera_id);
+            pipe = ffmpeg_stream_camera(set, camera_id);
             if (pipe == nullptr) {
                 std::cerr << "Error starting ffmpeg process for camera " << camera_id << std::endl;
                 // TODO send a verification message
@@ -174,12 +190,7 @@ static void local_camera_start(std::string command, int tmap_index) {
             continue; // don't need to publish an empty frame
         }
 
-        // Stream if applicable
-        if (cam_streaming && pipe != nullptr) {
-            fwrite(frame.data, 1, frame.total() * frame.elemSize(), pipe);
-        }
-
-        // Publish the frame locally if applicable
+        // Publish the frame locally if applicable immediately to avoid compression delays
         if (cam_local) {
             std::lock_guard<std::mutex> lock(publisher_mutex); // Automatically unlocks when out of scope (each loop)
             // Put the image into a ROS2 message
@@ -198,6 +209,35 @@ static void local_camera_start(std::string command, int tmap_index) {
 
             // Publish the message
             camera_manager->publish_image(msg);
+        }
+
+        // Stream if applicable
+        if (cam_streaming && (pipe != nullptr)) {
+            // Write the current frame for production
+            fwrite(frame.data, 1, frame.total() * frame.elemSize(), pipe);
+
+            ssize_t recv_len = 0L;
+
+            do {
+                // Try and find data. This may not be the most recent frame - that's fine.
+                // TODO find a more reasonable way to determine a max buffer size (HELPER FUNCTIONS?????)
+                char buffer[90'000]; // Storage buffer
+                sockaddr_in client_addr; // Receive address marker
+                socklen_t client_addr_len = sizeof(client_addr); // TODO const RH assignment
+
+                // Receive data (note ssize_t is signed)
+                recv_len = recvfrom(local_sockfd, buffer, sizeof(buffer), 0, 
+                (sockaddr*)&client_addr, &client_addr_len);
+                if (recv_len < 0) {
+                    std::cout << "no data right now" << std::endl;
+                } else {
+                    std::cout << "received data of size: " << recv_len << std::endl;
+
+                    // Forward the data on the broadcast socket
+                    sendto(stream_sockfd, buffer, recv_len, 0, 
+                    (sockaddr*)&broadcast_address, sizeof(broadcast_address));
+                }
+            } while (recv_len >= 1472);
         }
 
         // Handle a command if one is present

@@ -9,49 +9,15 @@
 
 #include "streaming.hpp"
 #include <thread>
-#include <sys/stat.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <unistd.h>
-// #include <fcntl.h>
-#include <fstream>
-#include <sys/socket.h>
+#include <fcntl.h>
 
-// TODO file-scope index of existing tcp ports on localhost
-std::map<int, std::string> existing_tcp_ports;
+int local_port_from_camera_id(int camera_id) {
+    return LOCAL_PORT_BASE + camera_id;
+}
 
-std::thread server_thread;
-bool server_running = false;
-const int broadcast_enabled = BROADCAST_ENABLED;
-
-// TODO function accessible globally for cleaning pipes from the index (on end and shutdown)
-// TODO same function on startup for cleaning purposes
-
-static int port_from_camera_id(int camera_id) {
+int stream_port_from_camera_id(int camera_id) {
     return STREAM_PORT_BASE + camera_id;
-}
-
-static void server_loop(void) {
-    // FIXME placeholder to prevent problems
-    // return;
-    
-    // Need to actually create our server
-    auto server = SimpleServer();
-
-    // Server cleanup
-    // FIXME server needs to close the broadcast socket
-}
-
-void start_server(void) {
-    // Enable the loop to run, then run it
-    server_running = true;
-    server_thread = std::thread(server_loop);
-}
-
-void end_server(void) {
-    // Cause the loop to safely stop, then join the thread
-    server_running = false;
-    server_thread.join();
 }
 
 FILE* ffmpeg_stream_camera(settings set, int camera_id) {
@@ -66,7 +32,7 @@ FILE* ffmpeg_stream_camera(settings set, int camera_id) {
     // TODO make sure this actually writes and doesn't need > or anything like that
     " -f mpegts -omit_video_pes_length 0 " + 
     // TODO TEST THIS INSANELY BECAUSE FFMPEG WILL BE BLOCKED UNTIL WE LISTEN
-    "tcp://" + LOCALHOST_IP_ADDR + ":" + std::to_string(port_from_camera_id(camera_id))
+    "udp://" + LOCALHOST_IP_ADDR + ":" + std::to_string(local_port_from_camera_id(camera_id))
     + " -loglevel quiet";
     ; // [ ] remove after determining loglevel setting
 
@@ -78,60 +44,63 @@ FILE* ffmpeg_stream_camera(settings set, int camera_id) {
         return nullptr;
     }
 
-    // We now urgently must create the tcp listener socket
-    int listenerSock = socket(AF_INET, SOCK_STREAM, 0);
-    if (listenerSock < 0) {
-        // FIXME handle
-        std::cerr << "Listener socket wouldn't open" << std::endl;
-    }
-
-    struct sockaddr_in address;
-    address.sin_family = AF_INET;
-    address.sin_port = htons(port_from_camera_id(camera_id));
-
-    if (inet_pton(AF_INET, LOCALHOST_IP_ADDR, &address.sin_addr) <= 0) {
-        // FIXME handle
-        std::cerr << "Invalid address or address not supported." << std::endl;
-    }
-
-    if (bind(listenerSock, (struct sockaddr*)&address, sizeof(address)) < 0) {
-        // FIXME handle
-        std::cerr << "Bind failed." << std::endl;
-    }
-
-    // TODO determine exactly how to listen for a connection here
-    // TODO assign constant to request attempts
-    if (listen(listenerSock, 30) < 0) {
-        // FIXME handle
-        std::cerr << "Bind failed." << std::endl;
-    }
-
-    // Now try and actually accept the connection
-    struct sockaddr_in clientAddr;
-    socklen_t clientAddrLen = sizeof(clientAddr);
-    int newSocket = accept(listenerSock, (struct sockaddr*)&clientAddr, &clientAddrLen);
-    if (newSocket < 0) {
-        std::cerr << "Accept failed I guess" << std::endl;
-    }
-
-    // FIXME Add it to the fifo index
-    
-
-    std::cout << "pipe created" << std::endl;
+    // [ ] make note where relevant: pipe kill is taken care of in command_handler
 
     return pipe;
 }
 
 void SimpleServer::send_packet(int camera_id, std::string pipe_name) {
-    int port = port_from_camera_id(camera_id);
+    int stream_port = stream_port_from_camera_id(camera_id);
 
     sockaddr_in broadcast_address;
     broadcast_address.sin_family = AF_INET;
     broadcast_address.sin_addr.s_addr = inet_addr(BROADCAST_IP_ADDR);
-    broadcast_address.sin_port = htons(port);
+    broadcast_address.sin_port = htons(stream_port);
 
     // Now we can just grab the listener port and forward it
 
+}
+
+int initialize_stream_socket(void) {
+    // FIXME error handling (-1)
+    int sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sock < 0) {
+        // handle
+    }
+
+    int broadcast_enabled = 1;
+
+    // FIXME error handling (-1)
+    if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &broadcast_enabled, sizeof(broadcast_enabled)) < 0) {
+        // handle
+    }
+
+    return sock;
+}
+
+int initialize_local_socket(int local_port) {
+    // FIXME error handling (-1)
+    int sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sock < 0) {
+        // handle
+    }
+
+    // Set to non blocking modes (without destroying old flags)
+    int flags = fcntl(sock, F_GETFL, 0);
+    fcntl(sock, F_SETFL, flags | O_NONBLOCK);
+
+    // Addressing
+    sockaddr_in serveraddr;
+    serveraddr.sin_family = AF_INET;
+    serveraddr.sin_addr.s_addr = htonl(INADDR_ANY); // I think this means localhost
+    serveraddr.sin_port = htons(local_port);
+
+    if (bind(sock, (sockaddr*)&serveraddr, sizeof(serveraddr)) < 0) {
+        // FIXME handle
+        close(sock);
+    }
+
+    return sock;
 }
 
 int SimpleServer::initialize_socket(void) {
@@ -140,6 +109,8 @@ int SimpleServer::initialize_socket(void) {
     if (sock < 0) {
         // handle
     }
+
+    int broadcast_enabled = 1;
 
     // FIXME error handling (-1)
     if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &broadcast_enabled, sizeof(broadcast_enabled)) < 0) {
