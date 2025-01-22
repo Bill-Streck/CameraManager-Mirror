@@ -49,18 +49,6 @@ FILE* ffmpeg_stream_camera(settings set, int camera_id) {
     return pipe;
 }
 
-void SimpleServer::send_packet(int camera_id, std::string pipe_name) {
-    int stream_port = stream_port_from_camera_id(camera_id);
-
-    sockaddr_in broadcast_address;
-    broadcast_address.sin_family = AF_INET;
-    broadcast_address.sin_addr.s_addr = inet_addr(BROADCAST_IP_ADDR);
-    broadcast_address.sin_port = htons(stream_port);
-
-    // Now we can just grab the listener port and forward it
-
-}
-
 int initialize_stream_socket(void) {
     // FIXME error handling (-1)
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
@@ -101,25 +89,4 @@ int initialize_local_socket(int local_port) {
     }
 
     return sock;
-}
-
-int SimpleServer::initialize_socket(void) {
-    // FIXME error handling (-1)
-    int sock = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sock < 0) {
-        // handle
-    }
-
-    int broadcast_enabled = 1;
-
-    // FIXME error handling (-1)
-    if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &broadcast_enabled, sizeof(broadcast_enabled)) < 0) {
-        // handle
-    }
-
-    return sock;
-}
-
-SimpleServer::SimpleServer() {
-    sock = this->initialize_socket();
 }

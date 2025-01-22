@@ -68,38 +68,6 @@ FILE* ffmpeg_stream_camera(settings set, int camera_id);
 // FIXME need a get stream frame data function
 
 /**
- * @brief Simple Server class for sending data with socket utilities
- * 
- */
-class SimpleServer
-{
-    public:
-        SimpleServer();
-
-        /**
-         * @brief Sends a packet for the selected camera_id
-         * 
-         * @param camera_id camera_id to send
-         * @param pipe_name camera pipe name
-         */
-        void send_packet(int camera_id, std::string pipe_name);
-
-    private:
-        /**
-         * @brief Socket identifier for sending data
-         * 
-         */
-        int sock;
-
-        /**
-         * @brief Creates a socket for broadcasting data
-         * 
-         * @return int 
-         */
-        int initialize_socket(void);
-};
-
-/**
  * @brief Creates a socket for broadcasting data
  * 
  * @return int Socket descriptor

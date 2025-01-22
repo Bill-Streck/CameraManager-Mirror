@@ -115,7 +115,6 @@ static void local_camera_start(std::string command, int tmap_index) {
 
     // Specific members for streaming
     // FIXME still need a small amount of logic for safely closing all the sockets
-    const int broadcast_enabled = BROADCAST_ENABLED;
     int stream_port = stream_port_from_camera_id(camera_id);
     int local_port = local_port_from_camera_id(camera_id);
     sockaddr_in broadcast_address;

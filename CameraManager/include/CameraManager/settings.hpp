@@ -12,7 +12,8 @@
 
 #include <string>
 
-#define CLARITY_PRESETS 10
+// TODO should we define this as light ordinal of highest or something?
+#define CLARITY_PRESETS 9
 
 /**
  * @brief Allows use of clarity presets. Advised.
