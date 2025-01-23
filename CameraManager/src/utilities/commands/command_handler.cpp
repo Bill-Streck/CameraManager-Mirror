@@ -104,7 +104,6 @@ static void local_camera_start(std::string command, int tmap_index) {
         camera.start();
     } catch(const std::exception& e) {
         // Please note this will be caught and handled inside the while loop - I am avoiding duplicate code
-        std::cerr << e.what() << '\n';
     }
 
     // Get basic camera variables ready
@@ -168,10 +167,11 @@ static void local_camera_start(std::string command, int tmap_index) {
         auto ts_nanoseconds = static_cast<uint32_t>(now_nanoseconds.count());
 
         if (frame.empty()) {
-            std::cerr << "Camera " << camera_id << " has no frame." << std::endl;
+            // Camera has no frame and must be restarted
             try {
                 camera.start();
             } catch(const std::exception& e) {
+                // TODO exchance for debug channel message
                 std::cerr << e.what() << '\n';
             }
             if (cam_command_map.find(camera_id) != cam_command_map.end() && cam_command_map[camera_id] == "end") {
@@ -219,10 +219,10 @@ static void local_camera_start(std::string command, int tmap_index) {
 
             do {
                 // Try and find data. This may not be the most recent frame - that's fine.
-                // TODO find a more reasonable way to determine a max buffer size (HELPER FUNCTIONS?????)
+                // TODO confirm the max buffer size is somewhere around 1500
                 char buffer[90'000]; // Storage buffer
                 sockaddr_in client_addr; // Receive address marker
-                socklen_t client_addr_len = sizeof(client_addr); // TODO const RH assignment
+                socklen_t client_addr_len = sizeof(client_addr);
 
                 // Receive data (note ssize_t is signed)
                 recv_len = recvfrom(local_sockfd, buffer, sizeof(buffer), 0, 

@@ -22,24 +22,21 @@ int stream_port_from_camera_id(int camera_id) {
 
 FILE* ffmpeg_stream_camera(settings set, int camera_id) {
     // H264 ffmpeg string
-    // [ ] clean this up lol
-    std::string command = "ffmpeg -y -f rawvideo -pix_fmt bgr24 -s " + 
-    std::to_string(int(set.width)) + "x" + std::to_string(int(set.height)) +
-    // TODO constants
-    " -re" +
-    " -i - " + // Pipe input
-    "-c:v libx264 -preset veryfast -tune zerolatency" +
-    // TODO make sure this actually writes and doesn't need > or anything like that
-    " -f mpegts -omit_video_pes_length 0 " + 
-    // TODO TEST THIS INSANELY BECAUSE FFMPEG WILL BE BLOCKED UNTIL WE LISTEN
-    "udp://" + LOCALHOST_IP_ADDR + ":" + std::to_string(local_port_from_camera_id(camera_id))
-    + " -loglevel quiet";
-    ; // [ ] remove after determining loglevel setting
+    std::string command = 
+    "ffmpeg -y -f rawvideo -pix_fmt bgr24 -s " + // ffmpeg, rawvideo format, pixel format BGR-24bit(8 per), size
+    std::to_string(int(set.width)) + "x" + std::to_string(int(set.height)) + // size string
+    " -re" + // TODO check what this is again???
+    " -i -" + // Pipe input (- short for pipe:0)
+    " -c:v libx264 -preset veryfast -tune zerolatency" + // libx264, verfast, zerolatency tune
+    " -f mpegts -omit_video_pes_length 0 " + // TODO investigate is omit pes is causing the issue
+    "udp://" + LOCALHOST_IP_ADDR + ":" + std::to_string(local_port_from_camera_id(camera_id)) // output IP
+    + " -loglevel quiet"; // Silence terminal output
 
     // Open pipe as write - we can read with the fifo
     FILE* pipe = popen(command.c_str(), "w");
     if (pipe == nullptr) {
         // FIXME either this or the loop needs to be retrying if they find nullptr
+        // TODO debug message should also be sent
         std::cerr << "Error opening pipe for ffmpeg" << std::endl;
         return nullptr;
     }
