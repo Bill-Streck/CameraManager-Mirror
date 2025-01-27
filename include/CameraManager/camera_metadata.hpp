@@ -14,13 +14,8 @@
 #include "camera_manager/msg/image_metadata.hpp"
 #include "startup.hpp"
 
-const float FOCAL_LENGTHS[MAX_CAMERA_ID+1] = {
-
-}; ///< Array of camera focal lengths in millimeters - MUST CHECK IF L = 0 -> Not recorded!!
-
-const float FOV_ANGLES[MAX_CAMERA_ID+1] = {
-
-}; ///< Array of camera field of views in degrees - MUST CHECK IF FOV = 0 -> Not recorded!!
+#define FOCAL_LENGTH_MM 3.67f ///< Focal length of a Logitech C920 webcam
+#define FOV_ANGLE_DEG 150.0f ///< FOV angle in degrees rounded to unsigned int
 
 const float CAMERA_HEIGHTS[MAX_CAMERA_ID+1] = {
     
