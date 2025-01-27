@@ -208,17 +208,15 @@ static void local_camera_start(std::string command, int tmap_index) {
 
             // metadata
             auto meta_msg = camera_manager::msg::ImageMetadata();
-            if (camera_id >= 0 && camera_id <= MAX_CAMERA_ID) {
-                meta_msg.foc_len_mm = FOCAL_LENGTHS[camera_id];
-            } else {
-                meta_msg.foc_len_mm = 0;
-            }
-
             meta_msg.im_height = frame.rows;
             meta_msg.im_width = frame.cols;
             if (camera_id >= 0 && camera_id <= MAX_CAMERA_ID) {
-                meta_msg.foc_len_mm = CAMERA_HEIGHTS[camera_id];
+                meta_msg.cam_height = CAMERA_HEIGHTS[camera_id];
+                meta_msg.fov_degrees = FOV_ANGLES[camera_id];
+                meta_msg.foc_len_mm = FOCAL_LENGTHS[camera_id];
             } else {
+                meta_msg.cam_height = 0;
+                meta_msg.fov_degrees = 0;
                 meta_msg.foc_len_mm = 0;
             }
 

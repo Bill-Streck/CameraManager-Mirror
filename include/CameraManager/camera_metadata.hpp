@@ -18,8 +18,12 @@ const float FOCAL_LENGTHS[MAX_CAMERA_ID+1] = {
 
 }; ///< Array of camera focal lengths in millimeters - MUST CHECK IF L = 0 -> Not recorded!!
 
+const float FOV_ANGLES[MAX_CAMERA_ID+1] = {
+
+}; ///< Array of camera field of views in degrees - MUST CHECK IF FOV = 0 -> Not recorded!!
+
 const float CAMERA_HEIGHTS[MAX_CAMERA_ID+1] = {
     
-}; ///< Array of camera mount heights in centimeters - MUST CHECK IF L = 0 -> Not recorded!!
+}; ///< Array of camera mount heights in centimeters - MUST CHECK IF H = 0 -> Not recorded!!
 
 #endif
