@@ -23,11 +23,7 @@ find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
-find_package(camera_manager REQUIRED)
-
-rosidl_generate_interfaces(${PROJECT_NAME}
-  "../../infrastructural_packages/robot_interfaces/msg/ImageMetadata.msg"
-)
+find_package(robot_interfaces REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -59,7 +55,7 @@ ament_target_dependencies(CameraManager
   rclcpp
   std_msgs
   sensor_msgs
-  camera_manager
+  robot_interfaces
 )
 
 install(TARGETS

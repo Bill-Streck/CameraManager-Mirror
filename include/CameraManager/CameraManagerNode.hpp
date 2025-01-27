@@ -44,7 +44,7 @@ class CameraManager : public rclcpp::Node
          * 
          * @param msg Metadata to publish.
          */
-        void publish_img_meta(camera_manager::msg::ImageMetadata msg);
+        void publish_img_meta(robot_interfaces::msg::ImageMetadata msg);
 
     private:
         /**
@@ -57,7 +57,7 @@ class CameraManager : public rclcpp::Node
         rclcpp::Subscription<std_msgs::msg::UInt32>::SharedPtr subscription_; ///< CameraManager command subscription.
         rclcpp::Publisher<std_msgs::msg::UInt32>::SharedPtr publisher_; ///< CameraManager debug response publisher.
         rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_publisher_; ///< CameraManager image publisher.
-        rclcpp::Publisher<camera_manager::msg::ImageMetadata>::SharedPtr metadata_publisher_; ///< CameraManager metadata publisher. Specifically used for YOLO data.
+        rclcpp::Publisher<robot_interfaces::msg::ImageMetadata>::SharedPtr metadata_publisher_; ///< CameraManager metadata publisher. Specifically used for YOLO data.
 };
 
 extern std::shared_ptr<CameraManager> camera_manager_node;

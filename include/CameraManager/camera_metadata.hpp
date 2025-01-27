@@ -11,11 +11,11 @@
 #define CAMERA_METADATA_HPP
 
 #include <cstdint>
-#include "camera_manager/msg/image_metadata.hpp"
+#include "robot_interfaces/msg/image_metadata.hpp"
 #include "startup.hpp"
 
-#define FOCAL_LENGTH_MM 3.67f ///< Focal length of a Logitech C920 webcam
-#define FOV_ANGLE_DEG 150.0f ///< FOV angle in degrees rounded to unsigned int
+#define FOCAL_LENGTH_MM 3.67f ///< Focal length in mm of a Logitech C920 webcam
+#define SENSOR_HEIGHT_MM 3.0f ///< Sensor height in mm of a Logitech C920 webcame
 
 const float CAMERA_HEIGHTS[MAX_CAMERA_ID+1] = {
     

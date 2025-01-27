@@ -26,7 +26,7 @@ CameraManager::CameraManager() : Node("camera_manager") {
     image_publisher_ = this->create_publisher<sensor_msgs::msg::Image>
         (CM_IMAGE_TOPIC, 10);
 
-    metadata_publisher_ = this->create_publisher<camera_manager::msg::ImageMetadata>
+    metadata_publisher_ = this->create_publisher<robot_interfaces::msg::ImageMetadata>
         (CM_METADATA_TOPIC, 10);
 }
 
@@ -44,7 +44,7 @@ void CameraManager::publish_image(sensor_msgs::msg::Image msg) {
     image_publisher_->publish(msg);
 }
 
-void CameraManager::publish_img_meta(camera_manager::msg::ImageMetadata msg) {
+void CameraManager::publish_img_meta(robot_interfaces::msg::ImageMetadata msg) {
     metadata_publisher_->publish(msg);
 }
 
