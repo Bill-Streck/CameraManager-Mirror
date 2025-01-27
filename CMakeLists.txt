@@ -15,12 +15,19 @@ endif()
 
 include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/CameraManager)
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/CameraManager
+)
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+find_package(camera_manager REQUIRED)
+
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "../../infrastructural_packages/robot_interfaces/msg/ImageMetadata.msg"
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -52,6 +59,7 @@ ament_target_dependencies(CameraManager
   rclcpp
   std_msgs
   sensor_msgs
+  camera_manager
 )
 
 install(TARGETS

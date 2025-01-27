@@ -14,7 +14,7 @@
 using namespace std::chrono_literals;
 using std::placeholders::_1;
 
-std::shared_ptr<CameraManager> camera_manager; 
+std::shared_ptr<CameraManager> camera_manager_node; 
 
 CameraManager::CameraManager() : Node("camera_manager") {
     subscription_ = this->create_subscription<std_msgs::msg::UInt32>
@@ -25,6 +25,9 @@ CameraManager::CameraManager() : Node("camera_manager") {
 
     image_publisher_ = this->create_publisher<sensor_msgs::msg::Image>
         (CM_IMAGE_TOPIC, 10);
+
+    metadata_publisher_ = this->create_publisher<camera_manager::msg::ImageMetadata>
+        (CM_METADATA_TOPIC, 10);
 }
 
 void CameraManager::publish_debug(uint32_t data) {
@@ -39,6 +42,10 @@ void CameraManager::command_callback(const std_msgs::msg::UInt32::SharedPtr msg)
 
 void CameraManager::publish_image(sensor_msgs::msg::Image msg) {
     image_publisher_->publish(msg);
+}
+
+void CameraManager::publish_img_meta(camera_manager::msg::ImageMetadata msg) {
+    metadata_publisher_->publish(msg);
 }
 
 class TestPub : public rclcpp::Node
@@ -160,8 +167,8 @@ int main(int argc, char* argv[]) {
         rclcpp::spin(std::make_shared<TestSub>());
     });
 
-    camera_manager = std::make_shared<CameraManager>();
-    rclcpp::spin(camera_manager);
+    camera_manager_node = std::make_shared<CameraManager>();
+    rclcpp::spin(camera_manager_node);
 
     // FIXME we actually do need a way down here
     // Clean up ROS2 and other utilities

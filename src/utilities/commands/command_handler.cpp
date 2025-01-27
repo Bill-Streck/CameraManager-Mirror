@@ -24,7 +24,7 @@
     #include <signal.h>
 #endif
 
-extern std::shared_ptr<CameraManager> camera_manager;
+extern std::shared_ptr<CameraManager> camera_manager_node;
 
 static std::map<int, Camera> cameras; ///< Map of camera objects. Used for seeing if a camera is on.
 static std::map<int, std::string> local_cams; ///< Map of cameras that are being used locally.
@@ -207,7 +207,7 @@ static void local_camera_start(std::string command, int tmap_index) {
             msg.header.frame_id = std::to_string(camera_id);
 
             // Publish the message
-            camera_manager->publish_image(msg);
+            camera_manager_node->publish_image(msg);
         }
 
         // Stream if applicable
