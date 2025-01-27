@@ -15,7 +15,11 @@
 #include "startup.hpp"
 
 const float FOCAL_LENGTHS[MAX_CAMERA_ID+1] = {
+
+}; ///< Array of camera focal lengths in millimeters - MUST CHECK IF L = 0 -> Not recorded!!
+
+const float CAMERA_HEIGHTS[MAX_CAMERA_ID+1] = {
     
-}; ///< Array of camera focal lengths - MUST CHECK IF L = 0 -> Not recorded!!
+}; ///< Array of camera mount heights in centimeters - MUST CHECK IF L = 0 -> Not recorded!!
 
 #endif
