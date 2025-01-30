@@ -99,7 +99,7 @@ static void local_camera_start(std::string command, int tmap_index) {
     set.use_preset(preset);
 
     camera.configure(set);
-    std::cout << "Starting camera " << camera_id << std::endl;
+
     try {
         camera.start();
     } catch(const std::exception& e) {
@@ -129,8 +129,7 @@ static void local_camera_start(std::string command, int tmap_index) {
         if (!cam_streaming && streaming_cams.find(camera_id) != streaming_cams.end()) {
             pipe = ffmpeg_stream_camera(set, camera_id);
             if (pipe == nullptr) {
-                std::cerr << "Error starting ffmpeg process for camera " << camera_id << std::endl;
-                // TODO send a verification message
+                // TODO send a verification message (or error)
                 
                 // Erase from streaming cams for now
                 if (streaming_cams.find(camera_id) != streaming_cams.end()) {
@@ -172,11 +171,10 @@ static void local_camera_start(std::string command, int tmap_index) {
                 camera.start();
             } catch(const std::exception& e) {
                 // TODO exchance for debug channel message
-                std::cerr << e.what() << '\n';
             }
             if (cam_command_map.find(camera_id) != cam_command_map.end() && cam_command_map[camera_id] == "end") {
                 // TODO send a verification message
-                std::cout << "Camera " << camera_id << " has been terminated." << std::endl;
+
                 camera.stop_all();
                 cam_command_map.erase(camera_id);
                 cameras.erase(camera_id);
@@ -240,11 +238,7 @@ static void local_camera_start(std::string command, int tmap_index) {
                 // Receive data (note ssize_t is signed)
                 recv_len = recvfrom(local_sockfd, buffer, sizeof(buffer), 0, 
                 (sockaddr*)&client_addr, &client_addr_len);
-                if (recv_len < 0) {
-                    std::cout << "no data right now" << std::endl;
-                } else {
-                    std::cout << "received data of size: " << recv_len << std::endl;
-
+                if (recv_len > 0) {
                     // Forward the data on the broadcast socket
                     sendto(stream_sockfd, buffer, recv_len, 0, 
                     (sockaddr*)&broadcast_address, sizeof(broadcast_address));
@@ -257,7 +251,7 @@ static void local_camera_start(std::string command, int tmap_index) {
             auto cmd = cam_command_map[camera_id];
             if (cmd == "end") {
                 // TODO send a verification message
-                std::cout << "Camera " << camera_id << " has been terminated." << std::endl;
+
                 camera.stop_all();
                 cam_command_map.erase(camera_id);
                 cameras.erase(camera_id);
@@ -275,7 +269,6 @@ static void local_camera_start(std::string command, int tmap_index) {
                 }
                 if (!camera.change_attribute(attribute, value)) {
                     // TODO send failure message
-                    std::cerr << "Error changing attribute " << attribute << " for camera " << camera_id << std::endl;
                 }
 
                 // Remove the command from the map
@@ -293,7 +286,6 @@ static void handler_loop() {
             threads[clear].join();
             threads.erase(clear);
             threads_end.remove(clear);
-            std::cout << "Thread " << clear << " has been cleaned." << std::endl;
         }
 
         std::string command = get_command();
@@ -302,7 +294,7 @@ static void handler_loop() {
             std::this_thread::sleep_for(std::chrono::milliseconds(HANDLER_NO_MESSAGE_SLEEP));
             continue;
         }
-        std::cout << "Received command: " << command << std::endl;
+
         if (command.at(0) == LOCAL_START) {
             auto parsed = parse_cmd(command);
             int id = -400;
@@ -315,7 +307,6 @@ static void handler_loop() {
             // If the camera wasn't already running, start it
             if (cameras.find(id) == cameras.end()) {
                 threads.insert(std::pair<int, std::thread>(map_counter, std::thread(local_camera_start, command, map_counter)));
-                std::cout << "Thread " << map_counter << " has been created." << std::endl;
                 map_counter++;
                 auto camera = Camera();
                 cameras.insert(std::pair<int, Camera>(id, camera));
@@ -338,7 +329,6 @@ static void handler_loop() {
             // If the camera wasn't already running, start it
             if (cameras.find(id) == cameras.end()) {
                 threads.insert(std::pair<int, std::thread>(map_counter, std::thread(local_camera_start, command, map_counter)));
-                std::cout << "Thread " << map_counter << " has been created." << std::endl;
                 map_counter++;
                 auto camera = Camera();
                 cameras.insert(std::pair<int, Camera>(id, camera));
@@ -374,8 +364,6 @@ static void handler_loop() {
             } else {
                 id = std::stoi(parsed["id"]);
             }
-
-            std::cout << "Stopping camera " << id << std::endl;
 
             // Remove camera from streaming cams
             if (streaming_cams.find(id) != streaming_cams.end()) {

@@ -21,7 +21,7 @@ cv::VideoCapture create_capture(settings set) {
         }
         dev_file = "/dev/urc/cam/logitech_" + numstr;
     }
-    std::cout << "Opening device file: " << dev_file << std::endl;
+
     auto cap = cv::VideoCapture(dev_file, cv::CAP_V4L2);
 
     // mandatory

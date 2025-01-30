@@ -141,8 +141,6 @@ static void CM_shutdown(void) {
 }
 
 void signal_handler(int signum) {
-    std::cout << "Interrupt signal (" << signum << ") received." << std::endl;
-
     CM_shutdown();
 
     while (true) {

@@ -151,7 +151,6 @@ static std::string generate_command(uint32_t command) {
             return "";
     }
 
-    std::cout << "Generated command: " << command_str << std::endl;
     return command_str;
 }
 

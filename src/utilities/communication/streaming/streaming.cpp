@@ -37,7 +37,6 @@ FILE* ffmpeg_stream_camera(settings set, int camera_id) {
     if (pipe == nullptr) {
         // FIXME either this or the loop needs to be retrying if they find nullptr
         // TODO debug message should also be sent
-        std::cerr << "Error opening pipe for ffmpeg" << std::endl;
         return nullptr;
     }
 
