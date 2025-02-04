@@ -1,5 +1,5 @@
 /**
- * @file image_metadata.hpp
+ * @file camera_metadata.hpp
  * @author William Streck
  * @brief Contains information for image metadata
  * @version 0.1
