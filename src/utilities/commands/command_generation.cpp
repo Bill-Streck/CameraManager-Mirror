@@ -18,169 +18,87 @@
  * @param command 
  * @return std::string 
  */
-static std::string generate_command(uint32_t command) {
-    std::string command_str = "";
+static map<string, string> generate_command(uint32_t command) {
+    map<string, string> parsed;
 
     auto command_type = command >> 29; // 31:29
     auto short_id = (command >> 24) & 0b11111; // 28:24 - for short commands
     auto long_quality = (command >> 24) & 0b11111; // 28:24 - for long commands
-    auto long_quality_str = std::to_string(long_quality);
     auto long_id = (command >> 19) & 0b11111; // 23:19 - for long commands
     auto attribute = (command >> 20) & 0b1111; // 23:20
-    auto attribute_str = std::to_string(attribute);
     // Now get the value from bits 16:0 (yes, we did skip some) for the modification
     auto value = command & 0xFFFF; // 16:0
-    // CRUCIAL: safeties must be parsed elsewhere
-    auto value_str = std::to_string(value);
+    bool is_long_command = false; // if the command uses "long" parsing
+    bool uses_quality = false; // if the command uses quality
     switch (command_type) {
         case 0:
-            command_str += LOCAL_START;
-            if (long_quality > CLARITY_PRESETS) {
-                // Invalid quality - do not handle
-                return "";
-            }
-            if (long_quality_str.size() == 1) {
-                long_quality_str = "0" + long_quality_str;
-            }
-            command_str += "qu" + long_quality_str;
-            if (long_id == 0b11111) {
-                command_str += "idwr";
-            } else {
-                command_str += "id";
-                auto long_id_str = std::to_string(long_id);
-                if (long_id_str.size() == 1) {
-                    long_id_str = "0" + long_id_str;
-                }
-                command_str += long_id_str;
-            }
+            parsed[INDEX_MODE] = LOCAL_START;
+            is_long_command = true;
+            uses_quality = true;
             break;
         case 1:
-            command_str += STREAM_START;
-            if (long_quality > CLARITY_PRESETS) {
-                // Invalid quality - do not handle
-                return "";
-            }
-            if (long_quality_str.size() == 1) {
-                long_quality_str = "0" + long_quality_str;
-            }
-            command_str += "qu" + long_quality_str;
-            if (long_id == 0b11111) {
-                command_str += "idwr";
-            } else {
-                command_str += "id";
-                auto long_id_str = std::to_string(long_id);
-                if (long_id_str.size() == 1) {
-                    long_id_str = "0" + long_id_str;
-                }
-                command_str += long_id_str;
-            }
+            parsed[INDEX_MODE] = STREAM_START;
+            is_long_command = true;
+            uses_quality = true;
             break;
         case 2:
-            command_str += LOCAL_STOP;
-            if (short_id == 0b11111) {
-                command_str += "wr";
-            } else {
-                // No "id" key for this command
-                auto short_id_str = std::to_string(short_id);
-                if (short_id_str.size() == 1) {
-                    short_id_str = "0" + short_id_str;
-                }
-                command_str += short_id_str;
-            }
+            parsed[INDEX_MODE] = LOCAL_STOP;
             break;
         case 3:
-            command_str += STREAM_STOP;
-            if (short_id == 0b11111) {
-                command_str += "wr";
-            } else {
-                // No "id" key for this command
-                auto short_id_str = std::to_string(short_id);
-                if (short_id_str.size() == 1) {
-                    short_id_str = "0" + short_id_str;
-                }
-                command_str += short_id_str;
-            }
+            parsed[INDEX_MODE] = STREAM_STOP;
             break;
         case 4:
-            command_str += FORCE_RESTART;
-            if (short_id == 0b11111) {
-                command_str += "wr";
-            } else {
-                // No "id" key for this command
-                auto short_id_str = std::to_string(short_id);
-                if (short_id_str.size() == 1) {
-                    short_id_str = "0" + short_id_str;
-                }
-                command_str += short_id_str;
-            }
+            parsed[INDEX_MODE] = FORCE_RESTART;
             break;
         case 5:
-            /* Note attribute can be quality, brightness, contrast, saturation, sharpness, gain, or auto white balance.
-             * Be mindful this means the command will have to be handled outside.
-             */
-            command_str += ATTRIBUTE_MODIFY;
-            if (short_id == 0b11111) {
-                command_str += "idwr";
-            } else {
-                command_str += "id";
-                auto short_id_str = std::to_string(short_id);
-                if (short_id_str.size() == 1) {
-                    short_id_str = "0" + short_id_str;
-                }
-                command_str += short_id_str;
-            }
-
             // id done, now get the attribute from bits 23:20 (4 bits)
             if (attribute > 6) {
                 // Invalid attribute (only 7 available) - do not handle
-                return "";
+                return FAIL_RET;
             }
-            if (attribute_str.size() == 1) {
-                attribute_str = "0" + attribute_str;
-            }
-            command_str += "at" + attribute_str;
 
-            // pad value to 5 digits
-            while (value_str.size() < 5) {
-                value_str = "0" + value_str;
-            }
-            command_str += "va" + value_str;
+            /* Note attribute can be quality, brightness, contrast, saturation, sharpness, gain, or auto white balance.
+             * Be mindful this means the command will have to be handled outside.
+             */
+            parsed[INDEX_MODE] = ATTRIBUTE_MODIFY;
+            parsed[INDEX_ATTRIBUTE] = to_string(attribute);
+            parsed[INDEX_AT_VALUE] = to_string(value);
             break;
         default:
             // Invalid command - do not handle
-            return "";
+            return FAIL_RET;
     }
 
-    return command_str;
-}
-
-void handle_command(uint32_t command) {
-    // Parse the command
-    auto command_str = generate_command(command);
-
-    post_command(command_str);
-}
-
-std::map<std::string, std::string> parse_cmd(std::string command) {
-    std::map<std::string, std::string> parsed;
-    
-    // Erase the first character as it is the command type
-    command.erase(0, 1);
-
-    // Find key-value pairs
-    size_t pos = 0;
-    while (pos < command.size()) {
-        std::string key = command.substr(pos, 2);
-        pos += 2;
-        if (key == "va") {
-            // Value is the last key and is longer than 2 characters
-            parsed[key] = command.substr(pos);
-            break;
+    if (is_long_command) {
+        // Long ID
+        if (long_id == 0b11111) {
+            parsed[INDEX_ID] = WRIST_ID;
+        } else {
+            parsed[INDEX_ID] = long_id;
         }
-        std::string value = command.substr(pos, 2); // FORCES TWO DIGIT NUMBERS
-        parsed[key] = value;
-        pos += 2; // to next pair
+
+        // Quality
+        if (uses_quality) {
+            if (long_quality > CLARITY_PRESETS) {
+                // Invalid quality - do not handle
+                return FAIL_RET;
+            }
+
+            parsed[INDEX_QUALITY] = to_string(long_quality);
+        }
+    } else {
+        // Just get the short ID
+        if (short_id == 0b11111) {
+            parsed[INDEX_ID] = WRIST_ID;
+        } else {
+            parsed[INDEX_ID] = to_string(short_id);
+        }
     }
 
     return parsed;
+}
+
+void handle_command(uint32_t command) {
+    // Parse the command and post it
+    post_command(generate_command(command));
 }

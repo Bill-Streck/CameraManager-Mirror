@@ -24,22 +24,35 @@
     #include <signal.h>
 #endif
 
-extern std::shared_ptr<CameraManager> camera_manager_node;
+extern shared_ptr<CameraManager> camera_manager_node;
 
-static std::map<int, Camera> cameras; ///< Map of camera objects. Used for seeing if a camera is on.
-static std::map<int, std::string> local_cams; ///< Map of cameras that are being used locally.
-static std::map<int, std::string> streaming_cams; ///< Map of cameras that are streaming. Used for ffmpeg process management.
+static map<int, Camera> cameras; ///< Map of camera objects. Used for seeing if a camera is on.
+static map<int, string> local_cams; ///< Map of cameras that are being used locally.
+static map<int, string> streaming_cams; ///< Map of cameras that are streaming. Used for ffmpeg process management.
 
-static std::map<int, std::string> cam_command_map; ///< Map of end flags for each thread, regardless of type.
+static map<int, map<string, string>> cam_command_map; ///< Map of end flags for each thread, regardless of type.
 
-static std::map<int, std::thread> threads; ///< Map of threads for command execution.
-static std::list<int> threads_end; ///< List of threads that have ended.
+static map<int, thread> threads; ///< Map of threads for command execution.
+static list<int> threads_end; ///< List of threads that have ended.
 
-static std::mutex publisher_mutex; ///< Mutex for local publisher socket.
+static mutex publisher_mutex; ///< Mutex for local publisher socket.
 
 static bool running = true; ///< Running flag for the handler loop. Doesn't need to be atomic.
 
 int map_counter = 0; ///< Counter for the thread map. Not right to count up, but if you find a way to overflow let me know because that's impressive.
+
+static int find_cam_id(map<string, string> parsed) {
+    int camera_id = CAMERA_ID_FAIL;
+    if (parsed[INDEX_ID] == WRIST_ID) {
+        camera_id = -1;
+    } else {
+        try {
+            camera_id = stoi(parsed[INDEX_ID]);
+        } catch (const exception& e) {/* Do nothing */}
+    }
+
+    return camera_id;
+}
 
 static clarity preset_from_quality(int quality) {
     if (quality == 0) {
@@ -74,18 +87,12 @@ void init_command_handler(void) {
 }
 
 // TODO rename and comment
-static void local_camera_start(std::string command, int tmap_index) {
-    // Parse the command
-    auto parsed = parse_cmd(command);
-    auto quality = std::stoi(parsed["qu"]);
-    int camera_id = -400;
-    if (parsed["id"] == "wr") {
-        camera_id = -1;
-    } else {
-        camera_id = std::stoi(parsed["id"]);
-    }
+static void local_camera_start(map<string, string> parsed, int tmap_index) {
+    // Pull the important values from the command
+    auto quality = stoi(parsed[INDEX_QUALITY]);
+    int camera_id = find_cam_id(parsed);
 
-    if (camera_id == -400 || camera_id > MAX_CAMERA_ID) {
+    if (camera_id == CAMERA_ID_FAIL || camera_id > MAX_CAMERA_ID) {
         // Camera is already on
         // TODO we should send a string message back to the client
         threads_end.push_back(tmap_index); // Clean thread
@@ -102,7 +109,7 @@ static void local_camera_start(std::string command, int tmap_index) {
 
     try {
         camera.start();
-    } catch(const std::exception& e) {
+    } catch(const exception& e) {
         // Please note this will be caught and handled inside the while loop - I am avoiding duplicate code
     }
 
@@ -159,9 +166,9 @@ static void local_camera_start(std::string command, int tmap_index) {
         auto frame = camera.get_current_frame();
 
         // Get the timestamp (after frame should be most accurate)
-        auto now = std::chrono::system_clock::now();
-        auto now_seconds = std::chrono::time_point_cast<std::chrono::seconds>(now);
-        auto now_nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(now - now_seconds);
+        auto now = chrono::system_clock::now();
+        auto now_seconds = chrono::time_point_cast<chrono::seconds>(now);
+        auto now_nanoseconds = chrono::duration_cast<chrono::nanoseconds>(now - now_seconds);
         auto ts_seconds = static_cast<uint32_t>(now_seconds.time_since_epoch().count());
         auto ts_nanoseconds = static_cast<uint32_t>(now_nanoseconds.count());
 
@@ -169,10 +176,11 @@ static void local_camera_start(std::string command, int tmap_index) {
             // Camera has no frame and must be restarted
             try {
                 camera.start();
-            } catch(const std::exception& e) {
+            } catch(const exception& e) {
                 // TODO exchance for debug channel message
             }
-            if (cam_command_map.find(camera_id) != cam_command_map.end() && cam_command_map[camera_id] == "end") {
+            if (cam_command_map.find(camera_id) != cam_command_map.end()
+            && cam_command_map[camera_id][AUX_INDEX_BASE] == COMMAND_MAP_END) {
                 // TODO send a verification message
 
                 camera.stop_all();
@@ -183,13 +191,13 @@ static void local_camera_start(std::string command, int tmap_index) {
             }
             
             // Avoid the slamming of CPU usage for no reason
-            std::this_thread::sleep_for(std::chrono::milliseconds(CAMERA_FAILURE_RETRY));
+            this_thread::sleep_for(chrono::milliseconds(CAMERA_FAILURE_RETRY));
             continue; // don't need to publish an empty frame
         }
 
         // Publish the frame locally if applicable immediately to avoid compression delays
         if (cam_local) {
-            std::lock_guard<std::mutex> lock(publisher_mutex); // Automatically unlocks when out of scope (each loop)
+            lock_guard<mutex> lock(publisher_mutex); // Automatically unlocks when out of scope (each loop)
             // Put the image into a ROS2 message
             auto msg = sensor_msgs::msg::Image();
             msg.height = frame.rows;
@@ -197,12 +205,12 @@ static void local_camera_start(std::string command, int tmap_index) {
             msg.encoding = "bgr8"; // pixel encoding
             msg.step = frame.step;
             // Don't worry about endian leave it default
-            msg.data = std::vector<uint8_t>(frame.data, frame.data + frame.total() * frame.elemSize());
+            msg.data = vector<uint8_t>(frame.data, frame.data + frame.total() * frame.elemSize());
 
             // Information in header
             msg.header.stamp.sec = ts_seconds;
             msg.header.stamp.nanosec = ts_nanoseconds;
-            msg.header.frame_id = std::to_string(camera_id);
+            msg.header.frame_id = to_string(camera_id);
 
             // metadata
             auto meta_msg = robot_interfaces::msg::ImageMetadata();
@@ -249,7 +257,7 @@ static void local_camera_start(std::string command, int tmap_index) {
         // Handle a command if one is present
         if (cam_command_map.find(camera_id) != cam_command_map.end()) {
             auto cmd = cam_command_map[camera_id];
-            if (cmd == "end") {
+            if (cmd[AUX_INDEX_BASE] == COMMAND_MAP_END) {
                 // TODO send a verification message
 
                 camera.stop_all();
@@ -257,12 +265,11 @@ static void local_camera_start(std::string command, int tmap_index) {
                 cameras.erase(camera_id);
                 threads_end.push_back(tmap_index); // Must occur LAST
                 return;
-            } else if (cmd.at(0) == '5') {
+            } else if (cmd[INDEX_MODE] == ATTRIBUTE_MODIFY) {
                 // Handle attribute modification
                 // TODO send verification message
-                auto parsed = parse_cmd(cmd);
-                auto attribute = std::stoi(parsed["at"]); // attribute key
-                auto value = std::stoi(parsed["va"]); // value MODIFIER key
+                auto attribute = stoi(cmd[INDEX_ATTRIBUTE]);
+                auto value = stoi(cmd[INDEX_AT_VALUE]);
                 // Warn them if they try gain
                 if (attribute == ATTR_GAIN) {
                     // TODO warn them even though you'll still try
@@ -288,65 +295,43 @@ static void handler_loop() {
             threads_end.remove(clear);
         }
 
-        std::string command = get_command();
-        if (command.size() == 0) {
+        map<string, string> parsed = get_command();
+        if (parsed.size() == 0) {
             // Command doesn't exist
-            std::this_thread::sleep_for(std::chrono::milliseconds(HANDLER_NO_MESSAGE_SLEEP));
+            this_thread::sleep_for(chrono::milliseconds(HANDLER_NO_MESSAGE_SLEEP));
             continue;
         }
 
-        if (command.at(0) == LOCAL_START) {
-            auto parsed = parse_cmd(command);
-            int id = -400;
-            if (parsed["id"] == "wr") {
-                id = -1;
-            } else {
-                id = std::stoi(parsed["id"]);
-            }
+        // Parse the command for usage, also every command requires id
+        int id = find_cam_id(parsed);
 
+        if (parsed[INDEX_MODE] == LOCAL_START) {
             // If the camera wasn't already running, start it
             if (cameras.find(id) == cameras.end()) {
-                threads.insert(std::pair<int, std::thread>(map_counter, std::thread(local_camera_start, command, map_counter)));
+                threads.insert(pair<int, thread>(map_counter, thread(local_camera_start, parsed, map_counter)));
                 map_counter++;
                 auto camera = Camera();
-                cameras.insert(std::pair<int, Camera>(id, camera));
+                cameras.insert(pair<int, Camera>(id, camera));
             }
 
             // Tell the camera to start locally if it isn't already
             if (local_cams.find(id) == local_cams.end()) {
-                local_cams.insert(std::pair<int, std::string>(id, " "));
+                local_cams.insert(pair<int, string>(id, " "));
             }
-        } else if (command.at(0) == STREAM_START) {
-            // Parse the command for only the camera ID
-            auto parsed = parse_cmd(command);
-            int id = -400;
-            if (parsed["id"] == "wr") {
-                id = -1;
-            } else {
-                id = std::stoi(parsed["id"]);
-            }
-
+        } else if (parsed[INDEX_MODE] == STREAM_START) {
             // If the camera wasn't already running, start it
             if (cameras.find(id) == cameras.end()) {
-                threads.insert(std::pair<int, std::thread>(map_counter, std::thread(local_camera_start, command, map_counter)));
+                threads.insert(pair<int, thread>(map_counter, thread(local_camera_start, parsed, map_counter)));
                 map_counter++;
                 auto camera = Camera();
-                cameras.insert(std::pair<int, Camera>(id, camera));
+                cameras.insert(pair<int, Camera>(id, camera));
             }
             
             // Tell the camera to start streaming if it isn't already
             if (streaming_cams.find(id) == streaming_cams.end()) {
-                streaming_cams.insert(std::pair<int, std::string>(id, " "));
+                streaming_cams.insert(pair<int, string>(id, " "));
             }
-        } else if (command.at(0) == LOCAL_STOP) {
-            auto parsed = parse_cmd(command);
-            int id = -400;
-            if (parsed["id"] == "wr") {
-                id = -1;
-            } else {
-                id = std::stoi(parsed["id"]);
-            }
-
+        } else if (parsed[INDEX_MODE] == LOCAL_STOP) {
             // Remove the camera from local cams
             if (local_cams.find(id) != local_cams.end()) {
                 local_cams.erase(id);
@@ -354,17 +339,10 @@ static void handler_loop() {
 
             // If the camera is not streaming, stop it entirely to save resources
             if (streaming_cams.find(id) == streaming_cams.end()) {
-                cam_command_map[id] = "end";
+                parsed[AUX_INDEX_BASE] = COMMAND_MAP_END;
+                cam_command_map[id] = parsed;
             }
-        } else if (command.at(0) == STREAM_STOP) {
-            auto parsed = parse_cmd(command);
-            int id = -400;
-            if (parsed["id"] == "wr") {
-                id = -1;
-            } else {
-                id = std::stoi(parsed["id"]);
-            }
-
+        } else if (parsed[INDEX_MODE] == STREAM_STOP) {
             // Remove camera from streaming cams
             if (streaming_cams.find(id) != streaming_cams.end()) {
                 streaming_cams.erase(id);
@@ -372,32 +350,40 @@ static void handler_loop() {
 
             // If the camera is not being used locally, stop it entirely to save resources
             if (local_cams.find(id) == local_cams.end()) {
-                cam_command_map[id] = "end";
+                parsed[AUX_INDEX_BASE] = COMMAND_MAP_END;
+                cam_command_map[id] = parsed;
             }
-        } else if (command.at(0) == FORCE_RESTART) {
-            // TODO force restart
-        } else if (command.at(0) == ATTRIBUTE_MODIFY) {
-            auto parsed = parse_cmd(command);
-            int id = -400;
-            if (parsed["id"] == "wr") {
-                id = -1;
-            } else {
-                id = std::stoi(parsed["id"]);
+        } else if (parsed[INDEX_MODE] == FORCE_RESTART) {
+            // Stop local running
+            if (local_cams.find(id) != local_cams.end()) {
+                local_cams.erase(id);
             }
+
+            // Stop streaming
+            if (streaming_cams.find(id) != streaming_cams.end()) {
+                streaming_cams.erase(id);
+            }
+
+            // Stop thread
+            parsed[AUX_INDEX_BASE] = COMMAND_MAP_END;
+            cam_command_map[id] = parsed;
+        } else if (parsed[INDEX_MODE] == ATTRIBUTE_MODIFY) {
             if (local_cams.find(id) != local_cams.end() || streaming_cams.find(id) != streaming_cams.end()) {
                 if (cam_command_map.find(id) == cam_command_map.end()) {
-                    cam_command_map[id] = command;
+                    cam_command_map[id] = parsed;
                 } else {
-                    // Only overwrite if the command is not "end"
-                    if (cam_command_map[id] != "end") {
-                        cam_command_map[id] = command;
+                    // Only overwrite if the command is not end
+                    if (cam_command_map[id].find(AUX_INDEX_BASE) != cam_command_map[id].end()
+                    && cam_command_map[id][AUX_INDEX_BASE] != COMMAND_MAP_END) {
+                        parsed[AUX_INDEX_BASE] = COMMAND_MAP_END;
+                        cam_command_map[id] = parsed;
                     }
                 }
             }
         }
 
         // Miniscule efficiency improvement - we sleep less here in case there are more commands
-        std::this_thread::sleep_for(std::chrono::milliseconds(HANDLER_MESSAGE_SLEEP));
+        this_thread::sleep_for(chrono::milliseconds(HANDLER_MESSAGE_SLEEP));
     }
 
     // FIXME handler cleanup (end cameras, end threads, ...)
@@ -405,7 +391,7 @@ static void handler_loop() {
 
 void begin_handler_loop() {
     // Start the handler loop in a new thread
-    threads.insert(std::pair<int, std::thread>(-1, std::thread(handler_loop)));
+    threads.insert(pair<int, thread>(-1, thread(handler_loop)));
 }
 
 void clean_command_handler(void) {

@@ -11,19 +11,22 @@
 #define COMMAND_BOARD_HPP
 
 #include <iostream>
+#include <map>
+
+using namespace std;
 
 /**
  * @brief Post a command to the command board queue.
  * 
  * @param command command to post for the command handler to process
  */
-void post_command(std::string command);
+void post_command(map<string, string> command);
 
 /**
  * @brief Get the next command from the command board queue.
  * 
  * @return std::string next command to process
  */
-std::string get_command();
+map<string, string> get_command();
 
 #endif

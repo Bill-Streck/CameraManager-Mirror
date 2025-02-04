@@ -25,7 +25,7 @@ FILE* ffmpeg_stream_camera(settings set, int camera_id) {
     std::string command = 
     "ffmpeg -y -f rawvideo -pix_fmt bgr24 -s " + // ffmpeg, rawvideo format, pixel format BGR-24bit(8 per), size
     std::to_string(int(set.width)) + "x" + std::to_string(int(set.height)) + // size string
-    " -re" + // TODO check what this is again???
+    " -re" + // Accept frames at rate received (no set frame rate)
     " -i -" + // Pipe input (- short for pipe:0)
     " -c:v libx264 -preset veryfast -tune zerolatency" + // libx264, verfast, zerolatency tune
     " -f mpegts -omit_video_pes_length 0 " + // TODO investigate is omit pes is causing the issue
@@ -39,8 +39,6 @@ FILE* ffmpeg_stream_camera(settings set, int camera_id) {
         // TODO debug message should also be sent
         return nullptr;
     }
-
-    // [ ] make note where relevant: pipe kill is taken care of in command_handler
 
     return pipe;
 }
