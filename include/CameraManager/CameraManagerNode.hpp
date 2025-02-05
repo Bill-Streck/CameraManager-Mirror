@@ -10,6 +10,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/u_int32.hpp>
 #include "camera_metadata.hpp"
+#include "sensor_msgs/msg/image.hpp"
 
 #define CM_SUB_TOPIC "camera_manager" ///< Main command listener topic.
 #define CM_PUB_TOPIC "camera_manager_debug" ///< Debug publisher topic.

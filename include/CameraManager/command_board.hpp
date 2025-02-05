@@ -25,7 +25,7 @@ void post_command(map<string, string> command);
 /**
  * @brief Get the next command from the command board queue.
  * 
- * @return std::string next command to process
+ * @return string next command to process
  */
 map<string, string> get_command();
 

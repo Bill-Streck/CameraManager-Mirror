@@ -37,6 +37,7 @@ add_executable(CameraManager
   src/utilities/cameras/startup.cpp
   src/utilities/cameras/camera_object.cpp
   src/utilities/cameras/settings.cpp
+  src/utilities/cameras/camera_thread.cpp
   src/utilities/commands/command_handler.cpp
   src/utilities/communication/streaming/streaming.cpp
   src/utilities/commands/command_board.cpp

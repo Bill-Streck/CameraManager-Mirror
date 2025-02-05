@@ -15,10 +15,7 @@
 #include "startup.hpp"
 
 #define FOCAL_LENGTH_MM 3.67f ///< Focal length in mm of a Logitech C920 webcam
-#define SENSOR_HEIGHT_MM 3.0f ///< Sensor height in mm of a Logitech C920 webcame
-
-const float CAMERA_HEIGHTS[MAX_CAMERA_ID+1] = {
-    
-}; ///< Array of camera mount heights in centimeters - MUST CHECK IF H = 0 -> Not recorded!!
+#define SENSOR_HEIGHT_MM 3.6f ///< Sensor height in mm of a Logitech C920 webcam
+#define SENSOR_WIDTH_MM 4.8f ///< Sesnsor height in mm of a Logitech C920 webcam
 
 #endif
