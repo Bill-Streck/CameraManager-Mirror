@@ -29,4 +29,6 @@ void local_camera_start(map<string, string> parsed, int tmap_index);
 
 int find_cam_id(map<string, string> parsed);
 
+clarity preset_from_quality(int quality);
+
 #endif

@@ -12,6 +12,7 @@
 
 #include <string>
 #include <map>
+#include <vector>
 
 using namespace std;
 
@@ -29,6 +30,7 @@ using namespace std;
 #define INDEX_ID "i" ///< Numeric camera index in parsed command.
 #define INDEX_ATTRIBUTE "a" ///< Attribute index in parsed command.
 #define INDEX_AT_VALUE "v" ///< Value index in parsed command.
+#define WRIST_ID_BIN 0b11111 ///< Binary value representing wrist id.
 #define WRIST_ID "wr" ///< Special id for wrist camera.
 #define AUX_INDEX_BASE "base" ///< Special command handler ID for command map bases.
 #define COMMAND_MAP_END "end" ///< Special base end camera thread command.
@@ -43,14 +45,9 @@ using namespace std;
 void handle_command(uint32_t command);
 
 /**
- * @brief Parse a command string into a map of key-value pairs.
- * To be used by the command handler and its threads.
- * Currently dependent on string being correct (internally handled - should not be used to parse messages).
+ * @brief Used for prestarting cameras on startup
  * 
- * @param command The command string to parse.
- * @return map<string, string> The parsed key-value pairs.
- * @example 0qu10id05 -> {"qu": "10", "id": "05"} with command type 0 -> local start camera 5 with quality 10
  */
-map<string, string> parse_cmd(string command);
+void prestart_cameras(std::vector<int64_t> prestarts, int64_t qual);
 
 #endif

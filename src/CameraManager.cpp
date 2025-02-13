@@ -16,6 +16,7 @@ using std::placeholders::_1;
 
 std::shared_ptr<CameraManager> camera_manager_node; 
 
+// FIXME parameter topic names
 CameraManager::CameraManager() : Node("camera_manager") {
     subscription_ = this->create_subscription<std_msgs::msg::UInt32>
         (CM_SUB_TOPIC, 10, std::bind(&CameraManager::command_callback, this, _1));
@@ -28,6 +29,25 @@ CameraManager::CameraManager() : Node("camera_manager") {
 
     metadata_publisher_ = this->create_publisher<robot_interfaces::msg::ImageMetadata>
         (CM_METADATA_TOPIC, 10);
+
+    this->declare_parameter(
+        CAM_PRESTART_PARAM, 
+        std::vector<int64_t>());
+
+    // TODO eval as array later???
+    this->declare_parameter(
+        CAM_PRST_QUAL_PARAM,
+        -1
+    );
+
+    auto prestarts = this->get_parameter(CAM_PRESTART_PARAM).as_integer_array();
+    auto prestart_quality = this->get_parameter(CAM_PRST_QUAL_PARAM).as_int();
+
+    if (prestarts.size() > 0) {
+        // We need to prestart some cameras
+        std::cout << "weeee" << std::endl;
+        prestart_cameras(prestarts, prestart_quality);
+    }
 }
 
 void CameraManager::publish_debug(uint32_t data) {
@@ -158,9 +178,9 @@ int main(int argc, char* argv[]) {
     init_command_handler();
 
     // Need to dispatch a thread for one of these (doesn't matter which)
-    auto t = std::thread([]() {
-        rclcpp::spin(std::make_shared<TestPub>());
-    });
+    // auto t = std::thread([]() {
+    //     rclcpp::spin(std::make_shared<TestPub>());
+    // });
     auto t2 = std::thread([]() {
         rclcpp::spin(std::make_shared<TestSub>());
     });

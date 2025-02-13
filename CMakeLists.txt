@@ -59,9 +59,16 @@ ament_target_dependencies(CameraManager
   robot_interfaces
 )
 
+# Executable install
 install(TARGETS
   CameraManager
   DESTINATION lib/${PROJECT_NAME}
+)
+
+# Launch install
+install(DIRECTORY
+  launch
+  DESTINATION share/${PROJECT_NAME}
 )
 
 ament_package()

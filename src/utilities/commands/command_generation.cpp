@@ -71,10 +71,10 @@ static map<string, string> generate_command(uint32_t command) {
 
     if (is_long_command) {
         // Long ID
-        if (long_id == 0b11111) {
+        if (long_id == WRIST_ID_BIN) {
             parsed[INDEX_ID] = WRIST_ID;
         } else {
-            parsed[INDEX_ID] = long_id;
+            parsed[INDEX_ID] = to_string(long_id);
         }
 
         // Quality
@@ -88,7 +88,7 @@ static map<string, string> generate_command(uint32_t command) {
         }
     } else {
         // Just get the short ID
-        if (short_id == 0b11111) {
+        if (short_id == WRIST_ID_BIN) {
             parsed[INDEX_ID] = WRIST_ID;
         } else {
             parsed[INDEX_ID] = to_string(short_id);
@@ -96,6 +96,24 @@ static map<string, string> generate_command(uint32_t command) {
     }
 
     return parsed;
+}
+
+void prestart_cameras(vector<int64_t> prestarts, int64_t qual) {
+    for (auto cam_id : prestarts) {
+        map<string, string> parsed;
+
+        // We know we only do local here
+        parsed[INDEX_MODE] = LOCAL_START;
+        if (cam_id == WRIST_ID_BIN) {
+            parsed[INDEX_ID] = WRIST_ID;
+        } else {
+            parsed[INDEX_ID] = to_string(cam_id);
+        }
+
+        parsed[INDEX_QUALITY] = to_string(qual);
+
+        post_command(parsed);
+    }
 }
 
 void handle_command(uint32_t command) {

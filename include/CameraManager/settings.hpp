@@ -13,12 +13,13 @@
 #include <string>
 
 // TODO should we define this as light ordinal of highest or something?
-#define CLARITY_PRESETS 9
+#define CLARITY_PRESETS 10
 
 /**
  * @brief Allows use of clarity presets. Advised.
  * 
  */
+// TODO may be removing any non 16:9 aspects to avoid resizing issues
 enum clarity {
     lowest, ///< 160x90, 5fps
     low, ///< 320x180, 5fps
@@ -27,6 +28,7 @@ enum clarity {
     okayish, ///< 640x360, 15fps
     medium, ///< 1280x720, 10fps
     mediumish, ///< 1280x720, 15fps
+    highish, ///< 1920x1080, 5fps
     high, ///< 1920x1080, 10fps
     higher, ///< 1920x1080, 15fps
     highest ///< 1920x1080, 20fps

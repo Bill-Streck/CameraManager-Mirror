@@ -12,6 +12,8 @@
 #include "camera_metadata.hpp"
 #include "sensor_msgs/msg/image.hpp"
 
+#define CAM_PRESTART_PARAM "cameras_prestart"
+#define CAM_PRST_QUAL_PARAM "cam_prestart_qual"
 #define CM_SUB_TOPIC "camera_manager" ///< Main command listener topic.
 #define CM_PUB_TOPIC "camera_manager_debug" ///< Debug publisher topic.
 #define CM_IMAGE_TOPIC "image_topic" ///< Image publisher topic (local on rover).

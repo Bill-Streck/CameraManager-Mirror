@@ -30,9 +30,10 @@ class Quality(Enum):
     okayish = 4 # ///< 640x360, 15fps
     medium = 5 # ///< 1280x720, 10fps
     mediumish = 6 # ///< 1280x720, 15fps
-    high = 7 # ///< 1920x1080, 10fps
-    higher = 8 # ///< 1920x1080, 15fps
-    highest = 9 # ///< 1920x1080, 20fps
+    highish = 7 # ///< 1920x1080, 5fps
+    high = 8 # ///< 1920x1080, 10fps
+    higher = 9 # ///< 1920x1080, 15fps
+    highest = 10 # ///< 1920x1080, 20fps
 
 class Command:
     def __init__(self):

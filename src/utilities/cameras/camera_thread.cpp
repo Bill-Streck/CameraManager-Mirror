@@ -28,7 +28,7 @@ map<int, string> local_cams; ///< Map of cameras that are being used locally.
 map<int, string> streaming_cams; ///< Map of cameras that are streaming. Used for ffmpeg process management.
 map<int, map<string, string>> cam_command_map; ///< Map of end flags for each thread, regardless of type.
 
-static clarity preset_from_quality(int quality) {
+clarity preset_from_quality(int quality) {
     if (quality == 0) {
         return lowest;
     } else if (quality == 1) {
@@ -44,10 +44,12 @@ static clarity preset_from_quality(int quality) {
     } else if (quality == 6) {
         return mediumish;
     } else if (quality == 7) {
-        return high;
+        return highish;
     } else if (quality == 8) {
-        return higher;
+        return high;
     } else if (quality == 9) {
+        return higher;
+    } else if (quality == 10) {
         return highest;
     }
 
@@ -76,7 +78,7 @@ void local_camera_start(map<string, string> parsed, int tmap_index) {
     auto quality = stoi(parsed[INDEX_QUALITY]);
     int camera_id = find_cam_id(parsed);
 
-    if (camera_id == CAMERA_ID_FAIL || camera_id > MAX_CAMERA_ID) {
+    if (camera_id == CAMERA_ID_FAIL) {
         // Camera is already on
         // TODO we should send a string message back to the client
         threads_end.push_back(tmap_index); // Clean thread
@@ -201,7 +203,7 @@ void local_camera_start(map<string, string> parsed, int tmap_index) {
             auto meta_msg = robot_interfaces::msg::ImageMetadata();
             meta_msg.im_height = frame.rows;
             meta_msg.im_width = frame.cols;
-            if (camera_id >= 0 && camera_id <= MAX_CAMERA_ID) {
+            if (camera_id >= 0) {
                 meta_msg.sensor_height = 4.0;
                 meta_msg.foc_len_mm = FOCAL_LENGTH_MM;
             } else {

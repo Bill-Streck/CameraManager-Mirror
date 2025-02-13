@@ -41,6 +41,10 @@ void settings::use_preset(clarity c) {
         width = 1280;
         height = 720;
         fps = 15;
+    } else if (c == highish) {
+        width = 1920;
+        height = 1080;
+        fps = 5;
     } else if (c == high) {
         width = 1920;
         height = 1080;
