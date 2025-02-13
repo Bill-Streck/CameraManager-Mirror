@@ -45,7 +45,6 @@ CameraManager::CameraManager() : Node("camera_manager") {
 
     if (prestarts.size() > 0) {
         // We need to prestart some cameras
-        std::cout << "weeee" << std::endl;
         prestart_cameras(prestarts, prestart_quality);
     }
 }

@@ -23,6 +23,7 @@ cv::VideoCapture create_capture(settings set) {
     }
 
     auto cap = cv::VideoCapture(dev_file, cv::CAP_V4L2);
+    cap.set(cv::CAP_PROP_FOURCC, cv::VideoWriter::fourcc('M', 'J', 'P', 'G'));
 
     // mandatory
     cap.set(cv::CAP_PROP_FRAME_WIDTH, set.width);
