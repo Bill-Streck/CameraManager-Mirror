@@ -67,57 +67,6 @@ void CameraManager::publish_img_meta(robot_interfaces::msg::ImageMetadata msg) {
     metadata_publisher_->publish(msg);
 }
 
-class TestPub : public rclcpp::Node
-{
-    public:
-        TestPub()
-        : Node("test_pub")
-        {
-            publisher_ = this->create_publisher<std_msgs::msg::UInt32>(CM_SUB_TOPIC, 10);
-            timer_ = this->create_wall_timer(
-                500ms, std::bind(&TestPub::timer_callback, this));
-        }
-
-    private:
-        uint32_t count = 0;
-        uint32_t commands[6] = {
-            // Start camera 7 local
-            // 0b000'00010'00111'000'0000'0000'0000'0000,
-            0b000'00100'00011'000'0000'0000'0000'0000, // 3 local
-            0b001'00100'00011'000'0000'0000'0000'0000, // 3 stream
-            // 21 local
-            // 0b000'00100'10101'000'0000'0000'0000'0000,
-            // Start camera 8 local
-            // 0b000'00010'01000'000'0000'0000'0000'0000,
-            // 0b000'00100'00001'000'0000'0000'0000'0000, // 1 local
-            // end camera 1 local
-            0xFFFFFFFF,
-            // Stream camera 7
-            // 0b001'00010'00111'000'0000'0000'0000'0000,
-            0xFFFFFFFF,
-            // end camera 3 local
-            0xFFFFFFFF,
-            // end camera 3 stream after delay
-            0xFFFFFFFF
-        };
-        void timer_callback()
-        {
-            auto message = std_msgs::msg::UInt32();
-            if (count < 6) {
-                message.data = commands[count];
-                count++;
-                publisher_->publish(message);
-            } else {
-                // message.data = 0xFFFFFFFF;
-                // slowly increase brightness of camera 1 by 10
-                message.data = 0b101'00001'0000'0000'0000'0000'0000'1010;
-            }
-            // publisher_->publish(message);
-        }
-        rclcpp::Publisher<std_msgs::msg::UInt32>::SharedPtr publisher_;
-        rclcpp::TimerBase::SharedPtr timer_;
-};
-
 class TestSub : public rclcpp::Node
 {
     public:
