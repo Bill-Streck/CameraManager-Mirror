@@ -5,7 +5,7 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
 
-AUTONOMY_CAM_NUMBERS = [1, 3, 18, 19] # temp
+AUTONOMY_CAM_NUMBERS = [27, 28, 29, 30] # temp
 
 def generate_launch_description():
     ld = LaunchDescription()
@@ -17,7 +17,7 @@ def generate_launch_description():
             package='camera_manager',
             parameters=[
                 {'cameras_prestart' : AUTONOMY_CAM_NUMBERS},
-                {'cam_prestart_qual' : 7}
+                {'cam_prestart_qual' : 4}
             ],
             output={'both' : 'log'}, # Mute executable output
         )
