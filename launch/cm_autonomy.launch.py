@@ -19,7 +19,7 @@ def generate_launch_description():
                 {'cameras_prestart' : AUTONOMY_CAM_NUMBERS},
                 {'cam_prestart_qual' : 7}
             ],
-            arguments=[]
+            output={'both' : 'log'}, # Mute executable output
         )
     )
 
