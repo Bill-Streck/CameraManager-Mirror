@@ -12,6 +12,12 @@
 
 #include "camera_object.hpp"
 #include "command_generation.hpp"
+#include "streaming.hpp"
+
+// Compatibility with certain development configurations (e.g. Wanderer2)
+#ifndef SIGKILL
+    #include <signal.h>
+#endif
 
 using namespace std;
 
@@ -25,7 +31,13 @@ extern map<int, string> local_cams; ///< Map of cameras that are being used loca
 extern map<int, string> streaming_cams; ///< Map of cameras that are streaming. Used for ffmpeg process management.
 extern map<int, map<string, string>> cam_command_map; ///< Map of end flags for each thread, regardless of type.
 
-void local_camera_start(map<string, string> parsed, int tmap_index);
+/**
+ * @brief Logitech C920 camera thread function.
+ * 
+ * @param parsed Information map for camera operation.
+ * @param tmap_index Numeric index in thread map. Of minimal significance.
+ */
+void logi_cam_thread(map<string, string> parsed, int tmap_index);
 
 int find_cam_id(map<string, string> parsed);
 

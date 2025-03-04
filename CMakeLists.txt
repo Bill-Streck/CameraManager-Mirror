@@ -22,7 +22,6 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(OpenCV REQUIRED)
-find_package(rosidl_default_generators REQUIRED)
 find_package(robot_interfaces REQUIRED)
 
 if(BUILD_TESTING)
@@ -38,6 +37,7 @@ add_executable(CameraManager
   src/utilities/cameras/camera_object.cpp
   src/utilities/cameras/settings.cpp
   src/utilities/cameras/camera_thread.cpp
+  src/utilities/cameras/realsense_interface.cpp
   src/utilities/commands/command_handler.cpp
   src/utilities/communication/streaming/streaming.cpp
   src/utilities/commands/command_board.cpp

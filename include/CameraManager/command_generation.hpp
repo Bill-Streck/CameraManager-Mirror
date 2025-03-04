@@ -13,6 +13,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include "robot_interfaces/msg/camera_manager_command.hpp"
 
 using namespace std;
 
@@ -30,7 +31,7 @@ using namespace std;
 #define INDEX_ID "i" ///< Numeric camera index in parsed command.
 #define INDEX_ATTRIBUTE "a" ///< Attribute index in parsed command.
 #define INDEX_AT_VALUE "v" ///< Value index in parsed command.
-#define WRIST_ID_BIN 0b11111 ///< Binary value representing wrist id.
+#define WRIST_ID_NUM -1 ///< Binary value representing wrist id.
 #define WRIST_ID "wr" ///< Special id for wrist camera.
 #define AUX_INDEX_BASE "base" ///< Special command handler ID for command map bases.
 #define COMMAND_MAP_END "end" ///< Special base end camera thread command.
@@ -42,12 +43,12 @@ using namespace std;
  * 
  * @param command ROS2 message to handle.
  */
-void handle_command(uint32_t command);
+void handle_command(robot_interfaces::msg::CameraManagerCommand::SharedPtr command);
 
 /**
  * @brief Used for prestarting cameras on startup
  * 
  */
-void prestart_cameras(std::vector<int64_t> prestarts, int64_t qual);
+void prestart_cameras(vector<int64_t> prestarts, vector<int64_t> qualities);
 
 #endif

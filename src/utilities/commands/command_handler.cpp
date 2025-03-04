@@ -47,7 +47,7 @@ static void handler_loop() {
         if (parsed[INDEX_MODE] == LOCAL_START) {
             // If the camera wasn't already running, start it
             if (cameras.find(id) == cameras.end()) {
-                threads.insert(pair<int, thread>(map_counter, thread(local_camera_start, parsed, map_counter)));
+                threads.insert(pair<int, thread>(map_counter, thread(logi_cam_thread, parsed, map_counter)));
                 map_counter++;
                 auto camera = Camera();
                 cameras.insert(pair<int, Camera>(id, camera));
@@ -60,7 +60,7 @@ static void handler_loop() {
         } else if (parsed[INDEX_MODE] == STREAM_START) {
             // If the camera wasn't already running, start it
             if (cameras.find(id) == cameras.end()) {
-                threads.insert(pair<int, thread>(map_counter, thread(local_camera_start, parsed, map_counter)));
+                threads.insert(pair<int, thread>(map_counter, thread(logi_cam_thread, parsed, map_counter)));
                 map_counter++;
                 auto camera = Camera();
                 cameras.insert(pair<int, Camera>(id, camera));

@@ -20,6 +20,7 @@
 #include "settings.hpp"
 #include "startup.hpp"
 
+#define MPEGTS_PACKET_MAX 1472 ///< Maximum size of an MPEG-TS packet in bytes on the UDP interface.
 #define AV1_PRESET "11" ///< AV1 preset for ffmpeg.
 #define FIFO_MODE 0666 ///< Mode for IPC FIFO. 6 -> 4 (read) + 2 (write) + 0 (no execution); x3 -> owner, groups, others.
 #define STREAM_PORT_BASE 53838 ///< Port base. Ensure nobody is using this range on the base station.

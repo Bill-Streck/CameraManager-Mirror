@@ -9,14 +9,8 @@
 
 #include "CameraManagerNode.hpp"
 #include "camera_thread.hpp"
-#include "streaming.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include <thread>
-
-// Compatibility with certain development configurations (e.g. Wanderer2)
-#ifndef SIGKILL
-    #include <signal.h>
-#endif
 
 extern shared_ptr<CameraManager> camera_manager_node;
 
@@ -72,8 +66,7 @@ int find_cam_id(map<string, string> parsed) {
     return camera_id;
 }
 
-// TODO rename and comment
-void local_camera_start(map<string, string> parsed, int tmap_index) {
+void logi_cam_thread(map<string, string> parsed, int tmap_index) {
     // Pull the important values from the command
     auto quality = stoi(parsed[INDEX_QUALITY]);
     int camera_id = find_cam_id(parsed);
@@ -238,7 +231,7 @@ void local_camera_start(map<string, string> parsed, int tmap_index) {
                     sendto(stream_sockfd, buffer, recv_len, 0, 
                     (sockaddr*)&broadcast_address, sizeof(broadcast_address));
                 }
-            } while (recv_len >= 1472);
+            } while (recv_len >= MPEGTS_PACKET_MAX);
         }
 
         // Handle a command if one is present
@@ -266,6 +259,9 @@ void local_camera_start(map<string, string> parsed, int tmap_index) {
                 }
 
                 // Remove the command from the map
+                cam_command_map.erase(camera_id);
+            } else {
+                // Fallback just don't care
                 cam_command_map.erase(camera_id);
             }
         }
