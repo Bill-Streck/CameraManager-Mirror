@@ -48,7 +48,17 @@ void handle_command(robot_interfaces::msg::CameraManagerCommand::SharedPtr comma
 /**
  * @brief Used for prestarting cameras on startup
  * 
+ * @param prestarts List of camera numbers to prestart.
+ * @param qualities List of camera qualities to prestart.
  */
 void prestart_cameras(vector<int64_t> prestarts, vector<int64_t> qualities);
+
+/**
+ * @brief Used for prestarting cameras for streaming
+ * 
+ * @param prestarts List of camera numbers to prestart.
+ * @param qualities List of camera qualities to prestart.
+ */
+void prestart_stream_cameras(vector<int64_t> prestarts, vector<int64_t> qualities);
 
 #endif

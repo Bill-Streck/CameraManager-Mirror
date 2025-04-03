@@ -24,6 +24,16 @@ find_package(sensor_msgs REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(robot_interfaces REQUIRED)
 
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET 
+    libavcodec
+    libavformat
+    libavutil
+    libswscale
+    libavfilter
+    libavdevice
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   set(ament_cmake_copyright_FOUND TRUE)
@@ -42,14 +52,19 @@ add_executable(CameraManager
   src/utilities/communication/streaming/streaming.cpp
   src/utilities/commands/command_board.cpp
   src/utilities/commands/command_generation.cpp
+  src/utilities/communication/compression/Encoder.cpp
+  src/utilities/communication/compression/Decoder.cpp
 )
-
+find_package(OpenSSL REQUIRED)
+target_link_libraries(CameraManager OpenSSL::SSL OpenSSL::Crypto)
 include_directories(
   ${OpenCV_INCLUDE_DIRS}
+  ${FFMPEG_INCLUDE_DIRS}
 )
 
 target_link_libraries(CameraManager
   ${OpenCV_LIBS}
+  PkgConfig::FFMPEG
 )
 
 ament_target_dependencies(CameraManager

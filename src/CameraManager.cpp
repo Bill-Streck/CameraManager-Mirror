@@ -15,7 +15,6 @@ using std::placeholders::_1;
 
 std::shared_ptr<CameraManager> camera_manager_node; 
 
-// FIXME parameter topic names
 CameraManager::CameraManager() : Node("camera_manager") {
     // Confirm topic parameters
     this->declare_parameter(CM_SUB_TOP_PARAM, CM_SUB_TOPIC);
@@ -42,6 +41,7 @@ CameraManager::CameraManager() : Node("camera_manager") {
             (met_topic, 10);
     }
 
+    // TODO prestarts will be same function at some point so just pull these together or just change the functions called
     // Camera prestarts
     {
         this->declare_parameter(
@@ -58,6 +58,25 @@ CameraManager::CameraManager() : Node("camera_manager") {
         if (prestarts.size() > 0) {
             // We need to prestart some cameras
             prestart_cameras(prestarts, prestart_quality);
+        }
+    }
+
+    // Cam stream prestarts
+    {
+        this->declare_parameter(
+            CAM_STREAM_PRESTART_PARAM, 
+            vector<int64_t>());
+
+        this->declare_parameter(
+            CAM_STREAM_PRST_QUAL_PARAM,
+            vector<int64_t>());
+
+        auto prestarts = this->get_parameter(CAM_STREAM_PRESTART_PARAM).as_integer_array();
+        auto prestart_quality = this->get_parameter(CAM_STREAM_PRST_QUAL_PARAM).as_integer_array();
+
+        if (prestarts.size() > 0) {
+            // We need to prestart some cameras
+            prestart_stream_cameras(prestarts, prestart_quality);
         }
     }
 }
@@ -79,42 +98,6 @@ void CameraManager::publish_image(sensor_msgs::msg::Image msg) {
 void CameraManager::publish_img_meta(robot_interfaces::msg::ImageMetadata msg) {
     metadata_publisher_->publish(msg);
 }
-
-class TestSub : public rclcpp::Node
-{
-    public:
-        TestSub()
-        : Node("test_sub")
-        {
-            subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
-                CM_IMAGE_TOPIC, 10, std::bind(&TestSub::command_callback, this, _1));
-
-            debug_listener_ = this->create_subscription<std_msgs::msg::UInt32>(
-                CM_PUB_TOPIC, 10, std::bind(&TestSub::debug_callback, this, _1));
-        }
-
-    private:
-        void command_callback(const sensor_msgs::msg::Image::SharedPtr msg) const
-        {
-            cv::Mat frame(msg->height, msg->width, CV_8UC3, (void*)msg->data.data());
-            auto imname = "Frame" + msg->header.frame_id + "fromROS";
-            try {
-                cv::imshow(imname, frame);
-                cv::waitKey(1);
-            } catch (const cv::Exception& e) {
-                // no screen present
-                return;
-            }
-        }
-
-        void debug_callback(const std_msgs::msg::UInt32::SharedPtr msg) const
-        {
-            std::cout << "Received debug message: " << msg->data << std::endl;
-        }
-
-        rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr subscription_;
-        rclcpp::Subscription<std_msgs::msg::UInt32>::SharedPtr debug_listener_;
-};
 
 static void CM_shutdown(void) {
     rclcpp::shutdown();
@@ -138,23 +121,11 @@ int main(int argc, char* argv[]) {
     // Initialize any utilites with no ROS dependencies
     init_command_handler();
 
-    // Need to dispatch a thread for one of these (doesn't matter which)
-    // auto t = std::thread([]() {
-    //     rclcpp::spin(std::make_shared<TestPub>());
-    // });
-    auto t2 = std::thread([]() {
-        rclcpp::spin(std::make_shared<TestSub>());
-    });
-
     camera_manager_node = std::make_shared<CameraManager>();
     rclcpp::spin(camera_manager_node);
 
-    // FIXME we actually do need a way down here
-    // Clean up ROS2 and other utilities
-    rclcpp::shutdown();
-    // t.join();
-    // t2.join();
-    clean_command_handler();
+    // Clean up - signal handler will take it if this doesn't
+    CM_shutdown();
     
     return 0;
 }

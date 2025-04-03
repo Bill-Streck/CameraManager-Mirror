@@ -25,7 +25,6 @@ static map<string, string> generate_command(robot_interfaces::msg::CameraManager
     auto camera_id = command->camera_id;
     auto quality = command->quality;
     auto attribute = command->attribute;
-    // Now get the value from bits 16:0 (yes, we did skip some) for the modification
     auto attr_value = command->attr_value;
     bool uses_quality = false; // if the command uses quality
     switch (command_type) {
@@ -80,6 +79,7 @@ static map<string, string> generate_command(robot_interfaces::msg::CameraManager
     return parsed;
 }
 
+// TODO merge at some point
 void prestart_cameras(vector<int64_t> prestarts, vector<int64_t> qualities) {
     for (size_t i=0; i<prestarts.size(); i++) {
         auto cam_id = prestarts.at(i); // guaranteed
@@ -95,6 +95,33 @@ void prestart_cameras(vector<int64_t> prestarts, vector<int64_t> qualities) {
 
         // We know we only do local here
         parsed[INDEX_MODE] = LOCAL_START;
+        if (cam_id == WRIST_ID_NUM) {
+            parsed[INDEX_ID] = WRIST_ID;
+        } else {
+            parsed[INDEX_ID] = to_string(cam_id);
+        }
+
+        parsed[INDEX_QUALITY] = to_string(qual);
+
+        post_command(parsed);
+    }
+}
+
+void prestart_stream_cameras(vector<int64_t> prestarts, vector<int64_t> qualities) {
+    for (size_t i=0; i<prestarts.size(); i++) {
+        auto cam_id = prestarts.at(i); // guaranteed
+        int64_t qual;
+
+        try {
+            qual = qualities.at(i);
+        } catch (const exception& e) {
+            qual = 2; // default to 320x180 at 10fps if they don't give a quality
+        }
+
+        map<string, string> parsed;
+
+        // We know we only do local here
+        parsed[INDEX_MODE] = STREAM_START;
         if (cam_id == WRIST_ID_NUM) {
             parsed[INDEX_ID] = WRIST_ID;
         } else {

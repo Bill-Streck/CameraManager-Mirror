@@ -20,6 +20,8 @@
 #define CM_MET_TOP_PARAM "cm_meta_topic" ///< Metadata publisher topic param.
 #define CAM_PRESTART_PARAM "cameras_prestart" ///< Camera prestart parameter as list of camera numbers.
 #define CAM_PRST_QUAL_PARAM "cam_prestart_qual" ///< Prestart quality parameter as list of numbers.
+#define CAM_STREAM_PRESTART_PARAM "stream_prestart" ///< Camera stream prestart parameter as list of camera numbers.
+#define CAM_STREAM_PRST_QUAL_PARAM "stream_prestart_qual" ///< Stream prestart quality parameter as list of numbers.
 
 #define CM_SUB_TOPIC "camera_manager" ///< Main command listener topic default.
 #define CM_PUB_TOPIC "camera_manager_debug" ///< Debug publisher topic default.

@@ -10,7 +10,9 @@
 #include "CameraManagerNode.hpp"
 #include "camera_thread.hpp"
 #include "sensor_msgs/msg/image.hpp"
+#include "Encoder.hpp"
 #include <thread>
+#include <openssl/md5.h>
 
 extern shared_ptr<CameraManager> camera_manager_node;
 
@@ -95,43 +97,28 @@ void logi_cam_thread(map<string, string> parsed, int tmap_index) {
 
     // Get basic camera variables ready
     cameras[camera_id] = camera;
-    FILE* pipe = nullptr;
     auto cam_streaming = false;
     auto cam_local = false;
+    Encoder encoder = Encoder();
 
     // Specific members for streaming
     // FIXME still need a small amount of logic for safely closing all the sockets
     int stream_port = stream_port_from_camera_id(camera_id);
-    int local_port = local_port_from_camera_id(camera_id);
+    // int local_port = local_port_from_camera_id(camera_id);
     sockaddr_in broadcast_address;
     broadcast_address.sin_family = AF_INET;
     broadcast_address.sin_addr.s_addr = inet_addr(BROADCAST_IP_ADDR);
     broadcast_address.sin_port = htons(stream_port);
     int stream_sockfd = initialize_stream_socket();
-    int local_sockfd = initialize_local_socket(local_port);
+    // int local_sockfd = initialize_local_socket(local_port);
 
     // Capture loop
     while (running) {
         // Check if we should be streaming or should close a stream
         if (!cam_streaming && streaming_cams.find(camera_id) != streaming_cams.end()) {
-            pipe = ffmpeg_stream_camera(set, camera_id);
-            if (pipe == nullptr) {
-                // TODO send a verification message (or error)
-                
-                // Erase from streaming cams for now
-                if (streaming_cams.find(camera_id) != streaming_cams.end()) {
-                    streaming_cams.erase(camera_id);
-                }
-            }
             cam_streaming = true;
         } else if (cam_streaming && streaming_cams.find(camera_id) == streaming_cams.end()) {
             // Stop the ffmpeg process
-            if (pipe != nullptr) {
-                // kill
-                kill(fileno(pipe), SIGKILL);
-                pclose(pipe);
-                pipe = nullptr;
-            }
             cam_streaming = false; // pipe was closed somehow I guess
         }
 
@@ -210,28 +197,50 @@ void logi_cam_thread(map<string, string> parsed, int tmap_index) {
         }
 
         // Stream if applicable
-        if (cam_streaming && (pipe != nullptr)) {
+        if (cam_streaming) {// && (pipe != nullptr)) {
             // Write the current frame for production
-            fwrite(frame.data, 1, frame.total() * frame.elemSize(), pipe);
+            // fwrite(frame.data, 1, frame.total() * frame.elemSize(), pipe);
 
-            ssize_t recv_len = 0L;
+            // ssize_t recv_len = 0L;
 
-            do {
-                // Try and find data. This may not be the most recent frame - that's fine.
-                // TODO confirm the max buffer size is somewhere around 1500
-                char buffer[90'000]; // Storage buffer
-                sockaddr_in client_addr; // Receive address marker
-                socklen_t client_addr_len = sizeof(client_addr);
+            // do {
+            //     // Try and find data. This may not be the most recent frame - that's fine.
+            //     // TODO confirm the max buffer size is somewhere around 1500
+            //     char buffer[90'000]; // Storage buffer
+            //     sockaddr_in client_addr; // Receive address marker
+            //     socklen_t client_addr_len = sizeof(client_addr);
 
-                // Receive data (note ssize_t is signed)
-                recv_len = recvfrom(local_sockfd, buffer, sizeof(buffer), 0, 
-                (sockaddr*)&client_addr, &client_addr_len);
-                if (recv_len > 0) {
-                    // Forward the data on the broadcast socket
-                    sendto(stream_sockfd, buffer, recv_len, 0, 
+            //     // Receive data (note ssize_t is signed)
+            //     recv_len = recvfrom(local_sockfd, buffer, sizeof(buffer), 0, 
+            //     (sockaddr*)&client_addr, &client_addr_len);
+            //     if (recv_len > 0) {
+            //         // Forward the data on the broadcast socket
+            //         sendto(stream_sockfd, buffer, recv_len, 0, 
+            //         (sockaddr*)&broadcast_address, sizeof(broadcast_address));
+            //     }
+            // } while (recv_len >= MPEGTS_PACKET_MAX);
+
+            auto encoding = encoder.encode(frame);
+            auto encoded_frame = encoding.first;
+            auto encoded_size = encoding.second;
+            // Take md5 checksum
+            unsigned char md5[MD5_DIGEST_LENGTH];
+            // Compute MD5 hash
+            MD5(reinterpret_cast<const unsigned char*>(encoded_frame), encoded_size, md5);
+
+            // Convert hash to a hexadecimal string
+            std::ostringstream hex_result;
+            for (int i = 0; i < MD5_DIGEST_LENGTH; ++i) {
+                hex_result << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(md5[i]);
+            }
+
+            RCLCPP_INFO(camera_manager_node->get_logger(), "MD5 hash: %s", hex_result.str().c_str());
+
+            if (encoded_frame != nullptr && encoded_size > 0) {
+                // Send the frame over the broadcast socket
+                sendto(stream_sockfd, encoded_frame, encoded_size, 0, 
                     (sockaddr*)&broadcast_address, sizeof(broadcast_address));
-                }
-            } while (recv_len >= MPEGTS_PACKET_MAX);
+            }
         }
 
         // Handle a command if one is present
