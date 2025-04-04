@@ -65,9 +65,9 @@ class Encoder {
          * @brief Encodes a frame into a vector of bytes.
          * 
          * @param frame frame to compress
-         * @return uchar* byte array to transmit
+         * @return vector<uchar> byte array to transmit
          */
-        pair<uchar*, int> encode(cv::Mat frame);
+        vector<uchar> encode(cv::Mat frame);
 
         /**
          * @brief Simple encoder flush

@@ -18,9 +18,12 @@ Encoder::Encoder() {}
 Encoder::~Encoder() {}
 
 // temporarily just avif encode in image
-pair<uchar*, int> Encoder::encode(cv::Mat image) {
+vector<uchar> Encoder::encode(cv::Mat image) {
     std::vector<uchar> buffer;
-    std::vector<int> params = {cv::IMWRITE_AVIF_QUALITY, 50};
+    std::vector<int> params = {
+        cv::IMWRITE_AVIF_QUALITY, 40,
+        cv::IMWRITE_AVIF_SPEED, 4,
+    };
     bool success = cv::imencode(".avif", image, buffer, params);
 
     if (!success) {
@@ -28,7 +31,7 @@ pair<uchar*, int> Encoder::encode(cv::Mat image) {
         throw "Could not encode image.";
     }
 
-    return make_pair(buffer.data(), buffer.size());
+    return buffer;
 }
 #endif
 

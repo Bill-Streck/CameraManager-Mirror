@@ -15,6 +15,7 @@ endif()
 
 include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/websocketpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/CameraManager
 )
 
@@ -56,6 +57,7 @@ add_executable(CameraManager
   src/utilities/communication/compression/Decoder.cpp
 )
 find_package(OpenSSL REQUIRED)
+# FIXME remove
 target_link_libraries(CameraManager OpenSSL::SSL OpenSSL::Crypto)
 include_directories(
   ${OpenCV_INCLUDE_DIRS}
