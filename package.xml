@@ -11,6 +11,7 @@
   <depend>rclcpp</depend>
   <depend>OpenCV</depend>
   <depend>sensor_msgs</depend>
+  <depend>ffmpeg_encoder_decoder</depend>
 
   <build_depend>libavcodec-dev</build_depend>
   <build_depend>libavformat-dev</build_depend>
