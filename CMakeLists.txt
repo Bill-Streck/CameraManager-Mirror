@@ -24,7 +24,6 @@ find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(robot_interfaces REQUIRED)
-find_package(ffmpeg_encoder_decoder REQUIRED)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET 
