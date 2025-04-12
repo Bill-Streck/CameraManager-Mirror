@@ -12,6 +12,14 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+static std::string stream_name_from_id(int camera_id) {
+    if (camera_id == -1) {
+        return "wrist";
+    } else {
+        return "logi" + std::to_string(camera_id);
+    }
+}
+
 FILE* ffmpeg_stream_camera(settings set, int camera_id) {
     // H264 ffmpeg string
     std::string command = 
@@ -22,7 +30,8 @@ FILE* ffmpeg_stream_camera(settings set, int camera_id) {
     " -c:v libx264 -preset veryfast -tune zerolatency" + // libx264, verfast, zerolatency tune
     // TODO rtsp from mystream to camera identifier
     // TODO bitrate
-    " -f rtsp -rtsp_transport tcp rtsp://localhost:8554/mystream";// + // RTSP link
+    " -f rtsp -rtsp_transport tcp rtsp://localhost:8554/" + stream_name_from_id(camera_id);// + // RTSP link
+    // [ ] silence terminal output so ssh isn't flooded
     // " -loglevel quiet"; // Silence terminal output
 
     // TODO delete test string

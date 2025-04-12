@@ -167,6 +167,11 @@ void logi_cam_thread(map<string, string> parsed, int tmap_index) {
             continue; // don't need to publish an empty frame
         }
 
+        // TODO very important - resolution addressing
+        // After we address containing separate resolutions for local and streaming and live updates,
+        // we need to make sure to update the ffmpeg process with the new resolution
+        // We also need to implement resizing (just basic opencv resize) for whichever is smaller
+
         // Publish the frame locally if applicable immediately to avoid compression delays
         if (cam_local) {
             lock_guard<mutex> lock(publisher_mutex); // Automatically unlocks when out of scope (each loop)
@@ -210,6 +215,7 @@ void logi_cam_thread(map<string, string> parsed, int tmap_index) {
 
         // Handle a command if one is present
         if (cam_command_map.find(camera_id) != cam_command_map.end()) {
+            // TODO still need to appropriately handle resolution changes and restart the ffmpeg process if applicable
             auto cmd = cam_command_map[camera_id];
             if (cmd[AUX_INDEX_BASE] == COMMAND_MAP_END) {
                 // TODO send a verification message

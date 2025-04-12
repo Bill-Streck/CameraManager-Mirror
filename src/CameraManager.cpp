@@ -127,6 +127,7 @@ int main(int argc, char* argv[]) {
     init_command_handler();
 
     // Make sure this only exists on the rover system
+    // TODO put setup for this somehwere, whether it be scripted or manually
     std::string mediaserver_cmd = "mediamtx";
     auto mediaserver_fd = popen(mediaserver_cmd.c_str(), "r");
     if (mediaserver_fd == nullptr) {

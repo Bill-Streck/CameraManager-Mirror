@@ -6,7 +6,7 @@ from launch import LaunchDescription
 from launch_ros.actions import Node
 
 CAM_NUMBERS = [31]
-CAM_QUALITIES = [5]
+CAM_QUALITIES = [4]
 
 def generate_launch_description():
     ld = LaunchDescription()

@@ -55,6 +55,7 @@ static void handler_loop() {
 
             // Tell the camera to start locally if it isn't already
             if (local_cams.find(id) == local_cams.end()) {
+                // TODO we need to address resolution in this case
                 local_cams.insert(pair<int, string>(id, " "));
             }
         } else if (parsed[INDEX_MODE] == STREAM_START) {
@@ -68,6 +69,7 @@ static void handler_loop() {
             
             // Tell the camera to start streaming if it isn't already
             if (streaming_cams.find(id) == streaming_cams.end()) {
+                // TODO we need to address resolution in this case
                 streaming_cams.insert(pair<int, string>(id, " "));
             }
         } else if (parsed[INDEX_MODE] == LOCAL_STOP) {
