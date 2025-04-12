@@ -14,6 +14,7 @@ using namespace std::chrono_literals;
 using std::placeholders::_1;
 
 std::shared_ptr<CameraManager> camera_manager_node; 
+FILE* mediaserver_fd = nullptr; ///< File descriptor for the media server process.
 
 CameraManager::CameraManager() : Node("camera_manager") {
     // Confirm topic parameters
@@ -102,6 +103,10 @@ void CameraManager::publish_img_meta(robot_interfaces::msg::ImageMetadata msg) {
 static void CM_shutdown(void) {
     rclcpp::shutdown();
     clean_command_handler();
+    if (mediaserver_fd != nullptr) {
+        pclose(mediaserver_fd);
+        mediaserver_fd = nullptr;
+    }
 }
 
 void signal_handler(int signum) {
@@ -120,6 +125,19 @@ int main(int argc, char* argv[]) {
 
     // Initialize any utilites with no ROS dependencies
     init_command_handler();
+
+    // Make sure this only exists on the rover system
+    std::string mediaserver_cmd = "mediamtx";
+    auto mediaserver_fd = popen(mediaserver_cmd.c_str(), "r");
+    if (mediaserver_fd == nullptr) {
+        // FIXME temp: we should absolutely not error out on this
+        RCLCPP_ERROR(rclcpp::get_logger("CameraManager"), "Failed to start media server");
+        return 1;
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Give the server time to start - this is critical
+
+    RCLCPP_INFO(rclcpp::get_logger("CameraManager"), "Media server started");
 
     camera_manager_node = std::make_shared<CameraManager>();
     rclcpp::spin(camera_manager_node);

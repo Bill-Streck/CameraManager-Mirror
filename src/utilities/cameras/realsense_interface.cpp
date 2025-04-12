@@ -19,6 +19,7 @@ void CameraManager::realsense_img_callback(const sensor_msgs::msg::Image::Shared
     }
 }
 
+// FIXME bring up to speed with other cameras
 void realsense_cam_thread(map<string, string> parsed, int tmap_index) {
     // verify the camera ID
     if (parsed[INDEX_ID] != WRIST_ID) {
@@ -45,14 +46,14 @@ void realsense_cam_thread(map<string, string> parsed, int tmap_index) {
     FILE* pipe = nullptr;
 
     // Preload the streaming things
-    int stream_port = stream_port_from_camera_id(camera_id);
-    int local_port = local_port_from_camera_id(camera_id);
-    sockaddr_in broadcast_address;
-    broadcast_address.sin_family = AF_INET;
-    broadcast_address.sin_addr.s_addr = inet_addr(BROADCAST_IP_ADDR);
-    broadcast_address.sin_port = htons(stream_port);
-    int stream_sockfd = initialize_stream_socket();
-    int local_sockfd = initialize_local_socket(local_port);
+    // int stream_port = stream_port_from_camera_id(camera_id);
+    // int local_port = local_port_from_camera_id(camera_id);
+    // sockaddr_in broadcast_address;
+    // broadcast_address.sin_family = AF_INET;
+    // broadcast_address.sin_addr.s_addr = inet_addr(BROADCAST_IP_ADDR);
+    // broadcast_address.sin_port = htons(stream_port);
+    // int stream_sockfd = initialize_stream_socket();
+    // int local_sockfd = initialize_local_socket(local_port);
 
     while (true) {
         // Grab any available frames
@@ -105,21 +106,21 @@ void realsense_cam_thread(map<string, string> parsed, int tmap_index) {
 
                 ssize_t recv_len = 0L;
 
-                do {
-                    // TODO buffer size is a guess and way oversized
-                    char buffer[90'000]; // Storage buffer
-                    sockaddr_in client_addr; // Receive address marker
-                    socklen_t client_addr_len = sizeof(client_addr);
+                // do {
+                //     // TODO buffer size is a guess and way oversized
+                //     char buffer[90'000]; // Storage buffer
+                //     sockaddr_in client_addr; // Receive address marker
+                //     socklen_t client_addr_len = sizeof(client_addr);
 
-                    // Receive data (note ssize_t is signed)
-                    recv_len = recvfrom(local_sockfd, buffer, sizeof(buffer), 0,
-                    (sockaddr*)&client_addr, &client_addr_len);
-                    if (recv_len > 0) {
-                        // Forward the data on the broadcast socket
-                        sendto(stream_sockfd, buffer, recv_len, 0,
-                            (sockaddr*)&broadcast_address, sizeof(broadcast_address));
-                    }
-                } while (recv_len >= MPEGTS_PACKET_MAX);
+                //     // Receive data (note ssize_t is signed)
+                //     recv_len = recvfrom(local_sockfd, buffer, sizeof(buffer), 0,
+                //     (sockaddr*)&client_addr, &client_addr_len);
+                //     if (recv_len > 0) {
+                //         // Forward the data on the broadcast socket
+                //         sendto(stream_sockfd, buffer, recv_len, 0,
+                //             (sockaddr*)&broadcast_address, sizeof(broadcast_address));
+                //     }
+                // } while (recv_len >= MPEGTS_PACKET_MAX);
             }
         }
 
