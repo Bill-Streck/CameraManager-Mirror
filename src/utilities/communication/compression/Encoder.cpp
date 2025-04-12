@@ -21,8 +21,8 @@ Encoder::~Encoder() {}
 vector<uchar> Encoder::encode(cv::Mat image) {
     std::vector<uchar> buffer;
     std::vector<int> params = {
-        cv::IMWRITE_AVIF_QUALITY, 40,
-        cv::IMWRITE_AVIF_SPEED, 4,
+        // cv::IMWRITE_AVIF_QUALITY, 40,
+        // cv::IMWRITE_AVIF_SPEED, 4,
     };
     bool success = cv::imencode(".avif", image, buffer, params);
 
