@@ -9,6 +9,7 @@
 
 #include "command_handler.hpp"
 #include "command_board.hpp"
+#include "realsense_interface.hpp"
 #include <iostream>
 #include <thread>
 #include <mutex>
@@ -47,8 +48,14 @@ static void handler_loop() {
         if (parsed[INDEX_MODE] == LOCAL_START) {
             // If the camera wasn't already running, start it
             if (cameras.find(id) == cameras.end()) {
-                threads.insert(pair<int, thread>(map_counter, thread(logi_cam_thread, parsed, map_counter)));
+                if (parsed[INDEX_ID] == "wr") {
+                    // FIXME not implemented yet - start intel thread
+                } else {
+                    // Start the normal cam thread
+                    threads.insert(pair<int, thread>(map_counter, thread(logi_cam_thread, parsed, map_counter)));
+                }
                 map_counter++;
+                // TODO uhhhhhhhhh why is there a camera object here???
                 auto camera = Camera();
                 cameras.insert(pair<int, Camera>(id, camera));
             }
@@ -61,7 +68,13 @@ static void handler_loop() {
         } else if (parsed[INDEX_MODE] == STREAM_START) {
             // If the camera wasn't already running, start it
             if (cameras.find(id) == cameras.end()) {
-                threads.insert(pair<int, thread>(map_counter, thread(logi_cam_thread, parsed, map_counter)));
+                if (parsed[INDEX_ID] == "wr") {
+                    // Start the realsense thread
+                    threads.insert(pair<int, thread>(map_counter, thread(realsense_cam_thread, parsed, map_counter)));
+                } else {
+                    // Start the normal cam thread
+                    threads.insert(pair<int, thread>(map_counter, thread(logi_cam_thread, parsed, map_counter)));
+                }
                 map_counter++;
                 auto camera = Camera();
                 cameras.insert(pair<int, Camera>(id, camera));

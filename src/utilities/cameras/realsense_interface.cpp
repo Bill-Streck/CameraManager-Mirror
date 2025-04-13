@@ -24,7 +24,6 @@ void CameraManager::realsense_img_callback(const sensor_msgs::msg::Image::Shared
     }
 }
 
-// FIXME bring up to speed with other cameras
 void realsense_cam_thread(map<string, string> parsed, int tmap_index) {
     // verify the camera ID
     if (parsed[INDEX_ID] != WRIST_ID) {
