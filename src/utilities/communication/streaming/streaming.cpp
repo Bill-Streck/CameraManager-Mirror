@@ -30,12 +30,12 @@ FILE* ffmpeg_stream_camera(settings set, int camera_id) {
     " -c:v libx264 -preset veryfast -tune zerolatency" + // libx264, verfast, zerolatency tune
     // TODO rtsp from mystream to camera identifier
     // TODO bitrate
-    " -f rtsp -rtsp_transport tcp rtsp://localhost:8554/" + stream_name_from_id(camera_id);// + // RTSP link
+    " -f rtsp -rtsp_transport tcp rtsp://localhost:8554/" + stream_name_from_id(camera_id) + // RTSP link
     // [ ] silence terminal output so ssh isn't flooded
-    // " -loglevel quiet"; // Silence terminal output
+    " -loglevel quiet"; // Silence terminal output
 
     // TODO delete test string
-    // std::string command = std::string() + \
+    // std::string command = std::string() +
     // "ffmpeg -f v4l2 -i /dev/video2 -c:v libx264 -preset veryfast -tune zerolatency -f "+
     // "rtsp -rtsp_transport tcp rtsp://localhost:8554/mystream";
 

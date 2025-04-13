@@ -10,9 +10,7 @@
 #include "CameraManagerNode.hpp"
 #include "camera_thread.hpp"
 #include "sensor_msgs/msg/image.hpp"
-#include "Encoder.hpp"
 #include <thread>
-#include <openssl/md5.h>
 
 extern shared_ptr<CameraManager> camera_manager_node;
 
@@ -106,24 +104,28 @@ void logi_cam_thread(map<string, string> parsed, int tmap_index) {
     while (running) {
         // Check if we should be streaming or should close a stream
         if (!cam_streaming && streaming_cams.find(camera_id) != streaming_cams.end()) {
-            cam_streaming = true;
-
             // Create the pipe
             pipe = ffmpeg_stream_camera(sett, camera_id);
             if (pipe == nullptr) {
-                // TODO don't do that
-                // TODO send a message back to the client
-                threads_end.push_back(tmap_index); // Clean thread
+                // TODO send a message back to the client over the debug channel
                 RCLCPP_ERROR(rclcpp::get_logger("CameraManager"), "Failed to start ffmpeg stream");
-                return;
+
+                // Erase from streaming cams for now
+                if (streaming_cams.find(camera_id) != streaming_cams.end()) {
+                    streaming_cams.erase(camera_id);
+                }
             }
+
+            cam_streaming = true;
         } else if (cam_streaming && streaming_cams.find(camera_id) == streaming_cams.end()) {
             cam_streaming = false;
 
-            // Kill the pipe
+            // Stop the ffmpeg process
             if (streaming_cams.find(camera_id) != streaming_cams.end()) {
+                kill(fileno(pipe), SIGKILL);
                 pclose(pipe);
                 streaming_cams.erase(camera_id);
+                pipe = nullptr;
             }
         }
 
@@ -194,6 +196,7 @@ void logi_cam_thread(map<string, string> parsed, int tmap_index) {
             meta_msg.im_height = frame.rows;
             meta_msg.im_width = frame.cols;
             if (camera_id >= 0) {
+                // HACK magic number just put this in the header
                 meta_msg.sensor_height = 4.0;
                 meta_msg.foc_len_mm = FOCAL_LENGTH_MM;
             } else {

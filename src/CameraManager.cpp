@@ -128,6 +128,7 @@ int main(int argc, char* argv[]) {
 
     // Make sure this only exists on the rover system
     // TODO put setup for this somehwere, whether it be scripted or manually
+    // TODO we also need to get a lot of macros put up for this kinda stuff
     std::string mediaserver_cmd = "mediamtx";
     auto mediaserver_fd = popen(mediaserver_cmd.c_str(), "r");
     if (mediaserver_fd == nullptr) {
@@ -136,6 +137,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    // Take this as a reminder to do global magic number checks
     std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Give the server time to start - this is critical
 
     RCLCPP_INFO(rclcpp::get_logger("CameraManager"), "Media server started");
