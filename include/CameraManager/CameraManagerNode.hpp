@@ -74,6 +74,8 @@ class CameraManager : public rclcpp::Node
         void realsense_img_callback(const sensor_msgs::msg::Image::SharedPtr msg) const;
 
         rclcpp::Subscription<robot_interfaces::msg::CameraManagerCommand>::SharedPtr subscription_; ///< CameraManager command subscription.
+        rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr realsense_subscription_; ///< RealSense image subscription.
+        // TODO see if we need the realsense metadata subscription (we really shouldn't)
         rclcpp::Publisher<std_msgs::msg::UInt32>::SharedPtr publisher_; ///< CameraManager debug response publisher.
         rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_publisher_; ///< CameraManager image publisher.
         rclcpp::Publisher<robot_interfaces::msg::ImageMetadata>::SharedPtr metadata_publisher_; ///< CameraManager metadata publisher. Specifically used for YOLO data.

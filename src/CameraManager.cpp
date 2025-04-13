@@ -32,6 +32,10 @@ CameraManager::CameraManager() : Node("camera_manager") {
         subscription_ = this->create_subscription<robot_interfaces::msg::CameraManagerCommand>
             (sub_topic, 10, std::bind(&CameraManager::command_callback, this, _1));
 
+        // TODO make this a parameter later just gonna hard code it for now
+        realsense_subscription_ = this->create_subscription<sensor_msgs::msg::Image>
+            ("/camera/camera/color/image_rect_raw", 10, std::bind(&CameraManager::realsense_img_callback, this, _1));
+
         publisher_ = this->create_publisher<std_msgs::msg::UInt32>
             (pub_topic, 10);
 
