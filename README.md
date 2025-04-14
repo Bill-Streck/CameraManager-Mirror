@@ -54,6 +54,6 @@ CameraManager also has a metadata channel that is geared towards image processin
 
 #### Streaming Output
 
-Unlike most other parts of the system, CameraManager does not stream over ROS2. This is to avoid the side effects of TCP interaction.
+Unlike most other parts of the system, CameraManager does not stream over ROS2. It instead runs an RTSP stream from ffmpeg into a Mediamtx media server, where video is served over RTSP and can be hosted in an iframe in the GUI.
 
-TODO awaiting
+TODO URLs.
