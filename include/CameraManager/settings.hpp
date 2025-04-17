@@ -24,8 +24,9 @@ enum clarity {
     lowest, ///< 160x90, 5fps
     low, ///< 320x180, 5fps
     lowish, ///< 320x180, 10fps
+    okayish, ///< 640x360, 5fps
     okay, ///< 640x360, 10fps
-    okayish, ///< 640x360, 15fps
+    okayer, ///< 640x360, 15fps
     medium, ///< 1280x720, 10fps
     mediumish, ///< 1280x720, 15fps
     highish, ///< 1920x1080, 5fps

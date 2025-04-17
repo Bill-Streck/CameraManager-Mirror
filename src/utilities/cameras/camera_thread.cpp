@@ -23,28 +23,8 @@ map<int, string> streaming_cams; ///< Map of cameras that are streaming. Used fo
 map<int, map<string, string>> cam_command_map; ///< Map of end flags for each thread, regardless of type.
 
 clarity preset_from_quality(int quality) {
-    if (quality == 0) {
-        return lowest;
-    } else if (quality == 1) {
-        return low;
-    } else if (quality == 2) {
-        return lowish;
-    } else if (quality == 3) {
-        return okay;
-    } else if (quality == 4) {
-        return okayish;
-    } else if (quality == 5) {
-        return medium;
-    } else if (quality == 6) {
-        return mediumish;
-    } else if (quality == 7) {
-        return highish;
-    } else if (quality == 8) {
-        return high;
-    } else if (quality == 9) {
-        return higher;
-    } else if (quality == 10) {
-        return highest;
+    if (0 <= quality && quality < highest) {
+        return static_cast<clarity>(quality+1);
     }
 
     // fallback

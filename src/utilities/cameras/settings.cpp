@@ -25,11 +25,15 @@ void settings::use_preset(clarity c) {
         width = 320;
         height = 180;
         fps = 10;
+    } else if (c == okayish) {
+        width = 640;
+        height = 360;
+        fps = 5;
     } else if (c == okay) {
         width = 640;
         height = 360;
         fps = 10;
-    } else if (c == okayish) {
+    } else if (c == okayer) {
         width = 640;
         height = 360;
         fps = 15;
