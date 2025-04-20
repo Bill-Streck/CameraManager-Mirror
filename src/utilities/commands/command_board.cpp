@@ -11,20 +11,20 @@
 #include <queue>
 #include <mutex>
 
-queue<map<string, string>> command_board;
+queue<map<string, int>> command_board;
 static mutex command_board_mutex;
 
-void post_command(map<string, string> command) {
+void post_command(map<string, int> command) {
     lock_guard<mutex> lock(command_board_mutex); // Automatically unlocks when out of scope
     command_board.push(command);
 }
 
-map<string, string> get_command() {
+map<string, int> get_command() {
     lock_guard<mutex> lock(command_board_mutex); // Automatically unlocks when out of scope
     if (command_board.empty()) {
-        return map<string, string>();
+        return map<string, int>();
     }
-    map<string, string> command = command_board.front();
+    map<string, int> command = command_board.front();
     command_board.pop(); // No idea who wrote the queue library but this isn't their brightest work I'd hope.
     return command;
 }

@@ -24,7 +24,7 @@ void CameraManager::realsense_img_callback(const sensor_msgs::msg::Image::Shared
     }
 }
 
-void realsense_cam_thread(map<string, string> parsed, int tmap_index) {
+void realsense_cam_thread(map<string, int> parsed, int tmap_index) {
     // verify the camera ID
     if (parsed[INDEX_ID] != WRIST_ID) {
         threads_end.push_back(tmap_index);
@@ -34,7 +34,7 @@ void realsense_cam_thread(map<string, string> parsed, int tmap_index) {
     RCLCPP_INFO(camera_manager_node->get_logger(), "hello from the realsense management thread!!");
 
     // Get the important stuff - we WON'T be using a camera object - just receiving images
-    auto quality = stoi(parsed[INDEX_QUALITY]);
+    auto quality = parsed[INDEX_QUALITY];
     auto preset = preset_from_quality(quality);
 
     // Settings are used specifically for height and width resizing

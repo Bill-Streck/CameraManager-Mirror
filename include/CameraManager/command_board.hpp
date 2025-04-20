@@ -20,13 +20,13 @@ using namespace std;
  * 
  * @param command command to post for the command handler to process
  */
-void post_command(map<string, string> command);
+void post_command(map<string, int> command);
 
 /**
  * @brief Get the next command from the command board queue.
  * 
- * @return string next command to process
+ * @return map<string, int> next command to process
  */
-map<string, string> get_command();
+map<string, int> get_command();
 
 #endif

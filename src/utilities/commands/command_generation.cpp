@@ -18,8 +18,8 @@
  * @param command 
  * @return std::string 
  */
-static map<string, string> generate_command(robot_interfaces::msg::CameraManagerCommand::SharedPtr command) {
-    map<string, string> parsed;
+static map<string, int> generate_command(robot_interfaces::msg::CameraManagerCommand::SharedPtr command) {
+    map<string, int> parsed;
 
     auto command_type = command->command_type;
     auto camera_id = command->camera_id;
@@ -53,8 +53,8 @@ static map<string, string> generate_command(robot_interfaces::msg::CameraManager
              * Be mindful this means the command will have to be handled outside.
              */
             parsed[INDEX_MODE] = ATTRIBUTE_MODIFY;
-            parsed[INDEX_ATTRIBUTE] = to_string(attribute);
-            parsed[INDEX_AT_VALUE] = to_string(attr_value);
+            parsed[INDEX_ATTRIBUTE] = attribute;
+            parsed[INDEX_AT_VALUE] = attr_value;
             break;
         default:
             // Invalid command - do not handle
@@ -67,13 +67,13 @@ static map<string, string> generate_command(robot_interfaces::msg::CameraManager
             return FAIL_RET;
         }
 
-        parsed[INDEX_QUALITY] = to_string(quality);
+        parsed[INDEX_QUALITY] = quality;
     }
 
     if (camera_id == WRIST_ID_NUM) {
         parsed[INDEX_ID] = WRIST_ID;
     } else {
-        parsed[INDEX_ID] = to_string(camera_id);
+        parsed[INDEX_ID] = camera_id;
     }
 
     return parsed;
@@ -91,17 +91,17 @@ void prestart_cameras(vector<int64_t> prestarts, vector<int64_t> qualities) {
             qual = 2; // default to 320x180 at 10fps if they don't give a quality
         }
 
-        map<string, string> parsed;
+        map<string, int> parsed;
 
         // We know we only do local here
         parsed[INDEX_MODE] = LOCAL_START;
         if (cam_id == WRIST_ID_NUM) {
             parsed[INDEX_ID] = WRIST_ID;
         } else {
-            parsed[INDEX_ID] = to_string(cam_id);
+            parsed[INDEX_ID] = cam_id;
         }
 
-        parsed[INDEX_QUALITY] = to_string(qual);
+        parsed[INDEX_QUALITY] = qual;
 
         post_command(parsed);
     }
@@ -118,17 +118,17 @@ void prestart_stream_cameras(vector<int64_t> prestarts, vector<int64_t> qualitie
             qual = 2; // default to 320x180 at 10fps if they don't give a quality
         }
 
-        map<string, string> parsed;
+        map<string, int> parsed;
 
         // We know we only do local here
         parsed[INDEX_MODE] = STREAM_START;
         if (cam_id == WRIST_ID_NUM) {
             parsed[INDEX_ID] = WRIST_ID;
         } else {
-            parsed[INDEX_ID] = to_string(cam_id);
+            parsed[INDEX_ID] = cam_id;
         }
 
-        parsed[INDEX_QUALITY] = to_string(qual);
+        parsed[INDEX_QUALITY] = qual;
 
         post_command(parsed);
     }

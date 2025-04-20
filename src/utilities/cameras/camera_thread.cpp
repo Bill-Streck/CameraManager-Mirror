@@ -20,7 +20,7 @@ map<int, Camera> cameras; ///< Map of camera objects. Used for seeing if a camer
 bool running = true; ///< Running flag for the handler loop. Doesn't need to be atomic.
 map<int, string> local_cams; ///< Map of cameras that are being used locally.
 map<int, string> streaming_cams; ///< Map of cameras that are streaming. Used for ffmpeg process management.
-map<int, map<string, string>> cam_command_map; ///< Map of end flags for each thread, regardless of type.
+map<int, map<string, int>> cam_command_map; ///< Map of end flags for each thread, regardless of type.
 
 clarity preset_from_quality(int quality) {
     if (0 <= quality && quality < highest) {
@@ -31,25 +31,10 @@ clarity preset_from_quality(int quality) {
     return okay;
 }
 
-int find_cam_id(map<string, string> parsed) {
-    int camera_id = CAMERA_ID_FAIL;
-    if (parsed[INDEX_ID] == WRIST_ID) {
-        camera_id = -1;
-    } else {
-        try {
-            camera_id = stoi(parsed[INDEX_ID]);
-        } catch (const exception& e) {
-            return CAMERA_ID_FAIL;
-        }
-    }
-
-    return camera_id;
-}
-
-void logi_cam_thread(map<string, string> parsed, int tmap_index) {
+void logi_cam_thread(map<string, int> parsed, int tmap_index) {
     // Pull the important values from the command
-    auto quality = stoi(parsed[INDEX_QUALITY]);
-    int camera_id = find_cam_id(parsed);
+    auto quality = parsed[INDEX_QUALITY];
+    int camera_id = parsed[INDEX_ID];
 
     if (camera_id == CAMERA_ID_FAIL) {
         // Camera is already on
@@ -210,8 +195,8 @@ void logi_cam_thread(map<string, string> parsed, int tmap_index) {
             } else if (cmd[INDEX_MODE] == ATTRIBUTE_MODIFY) {
                 // Handle attribute modification
                 // TODO send verification message
-                auto attribute = stoi(cmd[INDEX_ATTRIBUTE]);
-                auto value = stoi(cmd[INDEX_AT_VALUE]);
+                auto attribute = cmd[INDEX_ATTRIBUTE];
+                auto value = cmd[INDEX_AT_VALUE];
                 // Warn them if they try gain
                 if (attribute == ATTR_GAIN) {
                     // TODO warn them even though you'll still try

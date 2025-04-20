@@ -35,7 +35,7 @@ static void handler_loop() {
             threads_end.remove(clear);
         }
 
-        map<string, string> parsed = get_command();
+        map<string, int> parsed = get_command();
         if (parsed.size() == 0) {
             // Command doesn't exist
             this_thread::sleep_for(chrono::milliseconds(HANDLER_NO_MESSAGE_SLEEP));
@@ -43,12 +43,12 @@ static void handler_loop() {
         }
 
         // Parse the command for usage, also every command requires id
-        int id = find_cam_id(parsed);
+        int id = parsed[INDEX_ID];
 
         if (parsed[INDEX_MODE] == LOCAL_START) {
             // If the camera wasn't already running, start it
             if (cameras.find(id) == cameras.end()) {
-                if (parsed[INDEX_ID] == "wr") {
+                if (parsed[INDEX_ID] == WRIST_ID) {
                     // FIXME not implemented yet - start intel thread
                 } else {
                     // Start the normal cam thread
@@ -68,7 +68,7 @@ static void handler_loop() {
         } else if (parsed[INDEX_MODE] == STREAM_START) {
             // If the camera wasn't already running, start it
             if (cameras.find(id) == cameras.end()) {
-                if (parsed[INDEX_ID] == "wr") {
+                if (parsed[INDEX_ID] == WRIST_ID) {
                     // Start the realsense thread
                     threads.insert(pair<int, thread>(map_counter, thread(realsense_cam_thread, parsed, map_counter)));
                 } else {

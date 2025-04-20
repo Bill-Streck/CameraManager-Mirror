@@ -23,6 +23,6 @@ using namespace std;
  * @param parsed Camera information map.
  * @param tmap_index Numeric index in thread map. Of minimal significance.
  */
-void realsense_cam_thread(map<string, string> parsed, int tmap_index);
+void realsense_cam_thread(map<string, int> parsed, int tmap_index);
 
 #endif

@@ -94,6 +94,7 @@ void CameraManager::publish_debug(uint32_t data) {
 
 void CameraManager::command_callback(const robot_interfaces::msg::CameraManagerCommand::SharedPtr msg) const {
     handle_command(msg);
+    RCLCPP_INFO(this->get_logger(), "got a message and handled it without crashing.");
 }
 
 void CameraManager::publish_image(sensor_msgs::msg::Image msg) {
