@@ -43,14 +43,24 @@ void logi_cam_thread(map<string, int> parsed, int tmap_index) {
         return;
     }
 
-    // TODO enable having two different settings for streaming and local
+    // Settings and camera structure
     auto camera = Camera();
-    auto sett = settings();
-    sett.device_index = camera_id;
+    auto local_sett = settings();
+    local_sett.device_index = camera_id;
     auto preset = preset_from_quality(quality);
-    sett.use_preset(preset);
+    local_sett.use_preset(preset);
+    auto stream_sett = local_sett.deep_copy(); // Deep copy for streaming settings
 
-    camera.configure(sett);
+    int local_width = local_sett.width;
+    int local_height = local_sett.height;
+    // Little note on fps - local fps will not be filtered as of now
+    // Streaming fps will always have filtering permitted for multiples of less than 5. Any higher is moreso pointless.
+    int local_fps = local_sett.fps;
+    int stream_fps = local_sett.fps;
+    int stream_width = local_width;
+    int stream_height = local_height;
+
+    camera.configure(local_sett);
 
     try {
         camera.start();
@@ -70,9 +80,8 @@ void logi_cam_thread(map<string, int> parsed, int tmap_index) {
         // Check if we should be streaming or should close a stream
         if (!cam_streaming && streaming_cams.find(camera_id) != streaming_cams.end()) {
             // Create the pipe
-            pipe = ffmpeg_stream_camera(sett, camera_id);
+            pipe = ffmpeg_stream_camera(local_sett, camera_id);
             if (pipe == nullptr) {
-                // TODO send a message back to the client over the debug channel
                 RCLCPP_ERROR(rclcpp::get_logger("CameraManager"), "Failed to start ffmpeg stream");
 
                 // Erase from streaming cams for now
@@ -115,9 +124,7 @@ void logi_cam_thread(map<string, int> parsed, int tmap_index) {
             // Camera has no frame and must be restarted
             try {
                 camera.start();
-            } catch(const exception& e) {
-                // TODO exchance for debug channel message
-            }
+            } catch(const exception& e) {}
             if (cam_command_map.find(camera_id) != cam_command_map.end()
             && cam_command_map[camera_id][AUX_INDEX_BASE] == COMMAND_MAP_END) {
                 // TODO send a verification message
@@ -144,12 +151,22 @@ void logi_cam_thread(map<string, int> parsed, int tmap_index) {
             lock_guard<mutex> lock(publisher_mutex); // Automatically unlocks when out of scope (each loop)
             // Put the image into a ROS2 message
             auto msg = sensor_msgs::msg::Image();
-            msg.height = frame.rows;
-            msg.width = frame.cols;
+            auto local_frame = frame; // Rename for scoping purposes
+
+            // If streaming and local have different resolutions...
+            // AND the local resolution is smaller than the stream resolution...
+            // We want to resize the local frame.
+            // Note this is a pretty rare case and will only come up in testing
+            if (local_width != stream_width && local_width < stream_width) {
+                local_frame = cv::Mat(); // Now we want to allocate this
+                cv::resize(frame, local_frame, cv::Size(local_width, local_height));
+            }
+            msg.height = local_frame.rows;
+            msg.width = local_frame.cols;
             msg.encoding = "bgr8"; // pixel encoding
-            msg.step = frame.step;
+            msg.step = local_frame.step;
             // Don't worry about endian leave it default
-            msg.data = vector<uint8_t>(frame.data, frame.data + frame.total() * frame.elemSize());
+            msg.data = vector<uint8_t>(local_frame.data, local_frame.data + local_frame.total() * local_frame.elemSize());
 
             // Information in header
             msg.header.stamp.sec = ts_seconds;
@@ -158,13 +175,13 @@ void logi_cam_thread(map<string, int> parsed, int tmap_index) {
 
             // metadata
             auto meta_msg = robot_interfaces::msg::ImageMetadata();
-            meta_msg.im_height = frame.rows;
-            meta_msg.im_width = frame.cols;
+            meta_msg.im_height = local_frame.rows;
+            meta_msg.im_width = local_frame.cols;
             if (camera_id >= 0) {
-                // HACK magic number just put this in the header
-                meta_msg.sensor_height = 4.0;
+                meta_msg.sensor_height = SENSOR_HEIGHT_MM;
                 meta_msg.foc_len_mm = FOCAL_LENGTH_MM;
             } else {
+                // Nobody should be listenting to this for the realsense camera
                 meta_msg.sensor_height = 0;
                 meta_msg.foc_len_mm = 0;
             }
@@ -176,39 +193,51 @@ void logi_cam_thread(map<string, int> parsed, int tmap_index) {
 
         // Stream if applicable
         if (cam_streaming) {
+            // If streaming and local have different resolutions...
+            // AND the stream resolution is smaller than the local resolution...
+            // We want to resize the stream frame.
+            // Unlike the other, this might be pretty common during autonomy (1080p -> 180p or 90p)
+            auto stream_frame = frame; // Rename for scoping purposes
+            if (stream_width != local_width && stream_width < local_width) {
+                stream_frame = cv::Mat(); // Now we want to allocate this
+                cv::resize(frame, stream_frame, cv::Size(stream_width, stream_height));
+            }
+
             // TODO all the pipe safety stuff
-            fwrite(frame.data, 1, frame.total() * frame.elemSize(), pipe);
+            fwrite(stream_frame.data, 1, stream_frame.total() * stream_frame.elemSize(), pipe);
             // Luckily, we shouldn't need to do anything else now!! :)
         }
 
         // Handle a command if one is present
         if (cam_command_map.find(camera_id) != cam_command_map.end()) {
-            // TODO still need to appropriately handle resolution changes and restart the ffmpeg process if applicable
             auto cmd = cam_command_map[camera_id];
+
             if (cmd[AUX_INDEX_BASE] == COMMAND_MAP_END) {
-                // TODO send a verification message
+                // End command
                 camera.stop_all();
                 cam_command_map.erase(camera_id);
                 cameras.erase(camera_id);
                 threads_end.push_back(tmap_index); // Must occur LAST
                 return;
+
             } else if (cmd[INDEX_MODE] == ATTRIBUTE_MODIFY) {
                 // Handle attribute modification
-                // TODO send verification message
                 auto attribute = cmd[INDEX_ATTRIBUTE];
                 auto value = cmd[INDEX_AT_VALUE];
-                // Warn them if they try gain
-                if (attribute == ATTR_GAIN) {
-                    // TODO warn them even though you'll still try
+                
+                if (attribute == ATTR_STREAM_RESOLUTION || attribute == ATTR_LOCAL_RESOLUTION) {
+                    // FIXME immediately restart the ffmpeg process before another frame can even exist
                 }
                 if (!camera.change_attribute(attribute, value)) {
-                    // TODO send failure message
+                    RCLCPP_WARN(rclcpp::get_logger("CameraManager"), "Failed to change attribute %d to %d", attribute, value);
                 }
 
                 // Remove the command from the map
                 cam_command_map.erase(camera_id);
+
             } else {
                 // Fallback just don't care
+                RCLCPP_WARN(rclcpp::get_logger("CameraManager"), "Unknown command %d", cmd[AUX_INDEX_BASE]);
                 cam_command_map.erase(camera_id);
             }
         }

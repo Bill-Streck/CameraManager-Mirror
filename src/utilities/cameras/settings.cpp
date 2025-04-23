@@ -68,4 +68,19 @@ std::string settings::get_resolution_for_ffmpeg() {
     return std::to_string(width) + "x" + std::to_string(height);
 }
 
+settings settings::deep_copy() {
+    settings copy;
+    copy.device_index = device_index;
+    copy.width = width;
+    copy.height = height;
+    copy.fps = fps;
+    copy.brightness = brightness;
+    copy.contrast = contrast;
+    copy.saturation = saturation;
+    copy.sharpness = sharpness;
+    copy.gain = gain;
+    copy.enable_auto_white_balance = enable_auto_white_balance;
+    return copy;
+}
+
 #endif

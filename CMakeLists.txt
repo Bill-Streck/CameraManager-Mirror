@@ -40,11 +40,9 @@ add_executable(CameraManager
   src/utilities/cameras/camera_thread.cpp
   src/utilities/cameras/realsense_interface.cpp
   src/utilities/commands/command_handler.cpp
-  src/utilities/communication/streaming/streaming.cpp
+  src/utilities/streaming/streaming.cpp
   src/utilities/commands/command_board.cpp
   src/utilities/commands/command_generation.cpp
-  src/utilities/communication/compression/Encoder.cpp
-  src/utilities/communication/compression/Decoder.cpp
 )
 find_package(OpenSSL REQUIRED)
 # FIXME remove

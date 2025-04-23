@@ -73,15 +73,16 @@ class Camera {
          * @brief Changes an attribute on the camera within those identified.
          * 
          * @param attribute Attribute key to change.
-         * @param modifier Amount to change attribute by, or ignored if not applicable (white balance).
+         * @param value Value to change attribute to.
          * @returns result of the change as identified by cap.set()
          */
-        bool change_attribute(int attribute, int modifier);
+        bool change_attribute(int attribute, int value);
 
         /**
          * @brief Hard resets the camera.
          * 
          */
+        // FIXME about time
         void hard_reset();
 
         /**
@@ -92,7 +93,7 @@ class Camera {
         cv::VideoCapture get_capture();
     private:
         cv::VideoCapture cap;
-        settings set;
+        settings sett;
         bool ready_start = false;
         bool running = false;
 };

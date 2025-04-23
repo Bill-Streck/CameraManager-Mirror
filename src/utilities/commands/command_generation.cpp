@@ -79,12 +79,23 @@ static map<string, int> generate_command(robot_interfaces::msg::CameraManagerCom
     return parsed;
 }
 
-// TODO merge at some point
-void prestart_cameras(vector<int64_t> prestarts, vector<int64_t> qualities) {
+/**
+ * @brief Parent function for starting cameras.
+ * 
+ * @param prestarts Cameras to start
+ * @param qualities Qualities to start cameras at
+ * @param mode Whether this is the stream or local list
+ */
+static void prestart(vector<int64_t> prestarts, vector<int64_t> qualities, int mode) {
+    if (mode != LOCAL_START && mode != STREAM_START) {
+        // Invalid mode - do not handle
+        return;
+    }
     for (size_t i=0; i<prestarts.size(); i++) {
         auto cam_id = prestarts.at(i); // guaranteed
         int64_t qual;
 
+        // Get our quality - if it isn't valid, pull a default
         try {
             qual = qualities.at(i);
         } catch (const exception& e) {
@@ -93,13 +104,9 @@ void prestart_cameras(vector<int64_t> prestarts, vector<int64_t> qualities) {
 
         map<string, int> parsed;
 
-        // We know we only do local here
-        parsed[INDEX_MODE] = LOCAL_START;
-        if (cam_id == WRIST_ID_NUM) {
-            parsed[INDEX_ID] = WRIST_ID;
-        } else {
-            parsed[INDEX_ID] = cam_id;
-        }
+        // Set mode and ID
+        parsed[INDEX_MODE] = mode;
+        parsed[INDEX_ID] = cam_id; // Still valid for wrist
 
         parsed[INDEX_QUALITY] = qual;
 
@@ -107,31 +114,12 @@ void prestart_cameras(vector<int64_t> prestarts, vector<int64_t> qualities) {
     }
 }
 
+void prestart_cameras(vector<int64_t> prestarts, vector<int64_t> qualities) {
+    prestart(prestarts, qualities, LOCAL_START);
+}
+
 void prestart_stream_cameras(vector<int64_t> prestarts, vector<int64_t> qualities) {
-    for (size_t i=0; i<prestarts.size(); i++) {
-        auto cam_id = prestarts.at(i); // guaranteed
-        int64_t qual;
-
-        try {
-            qual = qualities.at(i);
-        } catch (const exception& e) {
-            qual = 2; // default to 320x180 at 10fps if they don't give a quality
-        }
-
-        map<string, int> parsed;
-
-        // We know we only do local here
-        parsed[INDEX_MODE] = STREAM_START;
-        if (cam_id == WRIST_ID_NUM) {
-            parsed[INDEX_ID] = WRIST_ID;
-        } else {
-            parsed[INDEX_ID] = cam_id;
-        }
-
-        parsed[INDEX_QUALITY] = qual;
-
-        post_command(parsed);
-    }
+    prestart(prestarts, qualities, STREAM_START);
 }
 
 void handle_command(robot_interfaces::msg::CameraManagerCommand::SharedPtr command) {
