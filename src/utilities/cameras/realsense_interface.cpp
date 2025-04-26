@@ -101,6 +101,7 @@ void realsense_cam_thread(map<string, int> parsed, int tmap_index) {
                 msg.width = width;
                 msg.encoding = old_msg.encoding; // pixel encoding
                 msg.step = old_msg.step;
+                
                 // Resize the image
                 cv::Mat frame(msg.height, msg.width, CV_8UC3, (void*)msg.data.data());
                 cv::resize(frame, frame, cv::Size(width, height));

@@ -132,20 +132,16 @@ int main(int argc, char* argv[]) {
     init_command_handler();
 
     // Make sure this only exists on the rover system
-    // TODO put setup for this somehwere, whether it be scripted or manually
-    // TODO we also need to get a lot of macros put up for this kinda stuff
-    std::string mediaserver_cmd = "mediamtx";
-    auto mediaserver_fd = popen(mediaserver_cmd.c_str(), "r");
+    // [ ] put setup for this somehwere, whether it be scripted or manually
+    auto mediaserver_fd = popen(MEDIA_SERVER_NAME, "r");
     if (mediaserver_fd == nullptr) {
         // FIXME temp: we should absolutely not error out on this
-        RCLCPP_ERROR(rclcpp::get_logger("CameraManager"), "Failed to start media server");
+        RCLCPP_ERROR(camera_manager_node->get_logger(), "Failed to start media server");
         return 1;
     }
 
     // Take this as a reminder to do global magic number checks
-    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Give the server time to start - this is critical
-
-    RCLCPP_INFO(rclcpp::get_logger("CameraManager"), "Media server started");
+    std::this_thread::sleep_for(std::chrono::milliseconds(MEDIA_SERVER_STARTUP_BUFFER)); // Give the server time to start - this is critical
 
     camera_manager_node = std::make_shared<CameraManager>();
     rclcpp::spin(camera_manager_node);

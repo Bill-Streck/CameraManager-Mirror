@@ -138,7 +138,12 @@ bool Camera::change_attribute(int attribute, int value) {
     } else if (attribute == ATTR_INTERNAL_FPS) {
         // Change the fps then unfortunately restart the capture
         if (value > 0) {
-            sett.fps = value;
+            // Round the value up to the nearest 5
+            auto fps_val = (value % 5 == 0) ? value : (value + (5 - (value % 5)));
+            if (fps_val > 30) {
+                fps_val = 30;
+            }
+            sett.fps = fps_val;
             cap.release(); // Deallocates memory as well -> safe to overwrite cap
             cap = create_capture(sett);
             

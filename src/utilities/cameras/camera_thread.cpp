@@ -31,6 +31,31 @@ clarity preset_from_quality(int quality) {
     return okay;
 }
 
+/**
+ * @brief Just returns an attribute name for debugging over RCLCPP_WARN
+ * 
+ * @param index Attribute index
+ * @return char* Attribute name
+ */
+static char* attr_name_from_index(int index) {
+    switch (index) {
+        case ATTR_BRIGHTNESS:
+            return "Brightness";
+        case ATTR_CONTRAST:
+            return "Contrast";
+        case ATTR_SATURATION:
+            return "Saturation";
+        case ATTR_SHARPNESS:
+            return "Sharpness";
+        case ATTR_GAIN:
+            return "Gain";
+        case ATTR_AUTO_WHITE_BALANCE:
+            return "Auto White Balance";
+        default:
+            return "Unknown";
+    }
+}
+
 void logi_cam_thread(map<string, int> parsed, int tmap_index) {
     // Pull the important values from the command
     auto quality = parsed[INDEX_QUALITY];
@@ -281,8 +306,34 @@ void logi_cam_thread(map<string, int> parsed, int tmap_index) {
                             RCLCPP_ERROR(camera_manager_node->get_logger(), "Failed to change internal resolution to %d", value);
                         }
                     }
+                } else if (attribute == ATTR_STREAM_FPS && cam_streaming) {
+                    // Set the new fps
+                    stream_sett.fps = value;
+                    stream_fps = value;
+
+                    // Check if we need to increase the internal fps
+                    if (internal_fps < stream_fps) {
+                        // Increase internal fps to the next step
+                        internal_fps = stream_fps;
+                        if (!camera.change_attribute(ATTR_INTERNAL_FPS, value)) {
+                            RCLCPP_ERROR(camera_manager_node->get_logger(), "Failed to change internal fps to %d", value);
+                        }
+                    }
+                } else if (attribute == ATTR_LOCAL_FPS && cam_local) {
+                    // Set the new fps
+                    local_sett.fps = value;
+                    local_fps = value;
+
+                    // Check if we need to increase the internal fps
+                    if (internal_fps < local_fps) {
+                        // Increase internal fps to the next step
+                        internal_fps = local_fps;
+                        if (!camera.change_attribute(ATTR_INTERNAL_FPS, value)) {
+                            RCLCPP_ERROR(camera_manager_node->get_logger(), "Failed to change internal fps to %d", value);
+                        }
+                    }
                 } else if (!camera.change_attribute(attribute, value)) {
-                    RCLCPP_WARN(camera_manager_node->get_logger(), "Failed to change attribute %d to %d", attribute, value);
+                    RCLCPP_WARN(camera_manager_node->get_logger(), "Failed to change attribute %s to %d", attr_name_from_index(attribute), value);
                 }
 
                 // Remove the command from the map

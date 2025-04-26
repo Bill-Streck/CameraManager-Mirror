@@ -20,9 +20,11 @@
 #include "settings.hpp"
 #include "startup.hpp"
 
-#define AV1_PRESET "11" ///< AV1 preset for ffmpeg.
-#define FIFO_MODE 0666 ///< Mode for IPC FIFO. 6 -> 4 (read) + 2 (write) + 0 (no execution); x3 -> owner, groups, others.
-#define BROADCAST_ENABLED 1 ///< Just represents a true broadcast parameter value
+using namespace std;
+
+#define MEDIA_SERVER_NAME "mediamtx" ///< Name of the media server process. Tested with version v1.11.3
+#define MEDIA_SERVER_STARTUP_BUFFER 100 ///< Buffer time in ms for the media server to start. Safer for stream launches.
+#define RTSP_TRANSPORT_ENDPOINT "rtsp://localhost:8554/" ///< RTSP transport endpoint. Localhost for now.
 
 /**
  * @brief Starts the ffmpeg streaming process for a camera. Consumes the device resource.
