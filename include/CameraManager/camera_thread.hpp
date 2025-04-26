@@ -39,6 +39,13 @@ extern map<int, map<string, int>> cam_command_map; ///< Map of end flags for eac
  */
 void logi_cam_thread(map<string, int> parsed, int tmap_index);
 
+/**
+ * @brief This is only here to work numeric safety around clarity.
+ * Just returns the same number so long as it's valid.
+ * 
+ * @param quality The quality to verify.
+ * @return clarity The resulting clarity, ideally the exact same but casted.
+ */
 clarity preset_from_quality(int quality);
 
 #endif

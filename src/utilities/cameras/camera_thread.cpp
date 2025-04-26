@@ -23,8 +23,8 @@ map<int, string> streaming_cams; ///< Map of cameras that are streaming. Used fo
 map<int, map<string, int>> cam_command_map; ///< Map of end flags for each thread, regardless of type.
 
 clarity preset_from_quality(int quality) {
-    if (0 <= quality && quality < highest) {
-        return static_cast<clarity>(quality+1);
+    if (0 <= quality && quality <= highest) {
+        return static_cast<clarity>(quality);
     }
 
     // fallback
@@ -38,7 +38,6 @@ void logi_cam_thread(map<string, int> parsed, int tmap_index) {
 
     if (camera_id == CAMERA_ID_FAIL) {
         // Camera is already on
-        // TODO we should send a string message back to the client
         threads_end.push_back(tmap_index); // Clean thread
         return;
     }
@@ -51,9 +50,15 @@ void logi_cam_thread(map<string, int> parsed, int tmap_index) {
     local_sett.use_preset(preset);
     auto stream_sett = local_sett.deep_copy(); // Deep copy for streaming settings
 
+    // Internal settings that define how the camera is actually running
+    int internal_fps = local_sett.fps; // Used for frame filtering
+    int internal_width = local_sett.width;
+    int internal_height = local_sett.height;
+
+    // local and streaming-specific settings
     int local_width = local_sett.width;
     int local_height = local_sett.height;
-    // Little note on fps - local fps will not be filtered as of now
+    // Local fps will not be filtered as of now
     // Streaming fps will always have filtering permitted for multiples of less than 5. Any higher is moreso pointless.
     int local_fps = local_sett.fps;
     int stream_fps = local_sett.fps;
@@ -80,9 +85,9 @@ void logi_cam_thread(map<string, int> parsed, int tmap_index) {
         // Check if we should be streaming or should close a stream
         if (!cam_streaming && streaming_cams.find(camera_id) != streaming_cams.end()) {
             // Create the pipe
-            pipe = ffmpeg_stream_camera(local_sett, camera_id);
+            pipe = ffmpeg_stream_camera(stream_sett, camera_id);
             if (pipe == nullptr) {
-                RCLCPP_ERROR(rclcpp::get_logger("CameraManager"), "Failed to start ffmpeg stream");
+                RCLCPP_ERROR(camera_manager_node->get_logger(), "ffmpeg failed - advise stop and restart camera");
 
                 // Erase from streaming cams for now
                 if (streaming_cams.find(camera_id) != streaming_cams.end()) {
@@ -96,14 +101,14 @@ void logi_cam_thread(map<string, int> parsed, int tmap_index) {
 
             // Stop the ffmpeg process
             if (streaming_cams.find(camera_id) != streaming_cams.end()) {
-                kill(fileno(pipe), SIGKILL);
+                kill(fileno(pipe), SIGTERM); // SIGTERM - graceful shutdown, may help with rtsp running
                 pclose(pipe);
                 streaming_cams.erase(camera_id);
                 pipe = nullptr;
             }
         }
 
-        // Check if we should be running local comms
+        // Check if we should be running local ros2 messages
         if (!cam_local && local_cams.find(camera_id) != local_cams.end()) {
             cam_local = true;
         } else if (cam_local && local_cams.find(camera_id) == local_cams.end()) {
@@ -225,11 +230,59 @@ void logi_cam_thread(map<string, int> parsed, int tmap_index) {
                 auto attribute = cmd[INDEX_ATTRIBUTE];
                 auto value = cmd[INDEX_AT_VALUE];
                 
-                if (attribute == ATTR_STREAM_RESOLUTION || attribute == ATTR_LOCAL_RESOLUTION) {
-                    // FIXME immediately restart the ffmpeg process before another frame can even exist
-                }
-                if (!camera.change_attribute(attribute, value)) {
-                    RCLCPP_WARN(rclcpp::get_logger("CameraManager"), "Failed to change attribute %d to %d", attribute, value);
+                if (attribute == ATTR_STREAM_RESOLUTION && cam_streaming) {
+                    // Immediately restart the ffmpeg process before another frame can even exist
+                    kill(fileno(pipe), SIGTERM); // SIGTERM - graceful shutdown, may help with rtsp running
+                    pclose(pipe);
+
+                    // Set only the new resolution and not fps
+                    int placeholder_fps = stream_fps;
+                    stream_sett.use_preset(preset_from_quality(value));
+                    stream_width = stream_sett.width;
+                    stream_height = stream_sett.height;
+                    stream_sett.fps = placeholder_fps;
+                    // Don't change fps for now - there is another command for that
+                    pipe = ffmpeg_stream_camera(stream_sett, camera_id);
+                    if (pipe == nullptr) {
+                        RCLCPP_ERROR(camera_manager_node->get_logger(), "ffmpeg failed - advise stop and restart camera");
+
+                        // Erase from streaming cams for now
+                        if (streaming_cams.find(camera_id) != streaming_cams.end()) {
+                            streaming_cams.erase(camera_id);
+                        }
+                    }
+
+                    // Check if we need to increase the internal resolution
+                    if (internal_width < stream_width) {
+                        // Increase internal resolution to the next step
+                        internal_width = stream_width;
+                        internal_height = stream_height;
+                        if (!camera.change_attribute(ATTR_INTERNAL_RES, value)) {
+                            RCLCPP_ERROR(camera_manager_node->get_logger(), "Failed to change internal resolution to %d", value);
+                        }
+                    }
+                } else if (attribute == ATTR_LOCAL_RESOLUTION && cam_local) {
+                    // Same as above but without the ffmpeg process
+
+                    // Set only the new resolution and not fps
+                    int placeholder_fps = local_fps;
+                    local_sett.use_preset(preset_from_quality(value));
+                    local_width = local_sett.width;
+                    local_height = local_sett.height;
+                    local_sett.fps = placeholder_fps;
+                    // Don't change fps for now - there is another command for that
+
+                    // Check if we need to increase the internal resolution
+                    if (internal_width < local_width) {
+                        // Increase internal resolution to the next step
+                        internal_width = local_width;
+                        internal_height = local_height;
+                        if (!camera.change_attribute(ATTR_INTERNAL_RES, value)) {
+                            RCLCPP_ERROR(camera_manager_node->get_logger(), "Failed to change internal resolution to %d", value);
+                        }
+                    }
+                } else if (!camera.change_attribute(attribute, value)) {
+                    RCLCPP_WARN(camera_manager_node->get_logger(), "Failed to change attribute %d to %d", attribute, value);
                 }
 
                 // Remove the command from the map
@@ -237,7 +290,7 @@ void logi_cam_thread(map<string, int> parsed, int tmap_index) {
 
             } else {
                 // Fallback just don't care
-                RCLCPP_WARN(rclcpp::get_logger("CameraManager"), "Unknown command %d", cmd[AUX_INDEX_BASE]);
+                RCLCPP_WARN(camera_manager_node->get_logger(), "Unknown command %d", cmd[AUX_INDEX_BASE]);
                 cam_command_map.erase(camera_id);
             }
         }

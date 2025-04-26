@@ -31,8 +31,6 @@ void realsense_cam_thread(map<string, int> parsed, int tmap_index) {
         return;
     }
 
-    RCLCPP_INFO(camera_manager_node->get_logger(), "hello from the realsense management thread!!");
-
     // Get the important stuff - we WON'T be using a camera object - just receiving images
     auto quality = parsed[INDEX_QUALITY];
     auto preset = preset_from_quality(quality);

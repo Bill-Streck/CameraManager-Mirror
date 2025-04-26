@@ -62,10 +62,10 @@ enum clarity {
 class settings {
     public:
         // mandatory
-        int device_index;
-        double width = 0;
-        double height = 0;
-        double fps = 0;
+        int device_index; // device index for the camera - corresponds either to wrist (-1) or logitech naming convention
+        double width = 0; // width of the camera in pixels - 160-1920
+        double height = 0; // height of the camera in pixels - 90-1080
+        double fps = 0; // frames per second - 5-20 - 30 is possible but not recommended
 
         // optional
         double brightness = 128; // 0-255 - no recommended changes - use as needed
