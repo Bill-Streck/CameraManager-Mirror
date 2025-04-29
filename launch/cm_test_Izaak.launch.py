@@ -17,7 +17,7 @@ def generate_launch_description():
             package='camera_manager',
             parameters=[
                 {'cameras_prestart' : CAM_NUMBERS},
-                {'cam_prestart_qual' : 4}
+                {'cam_prestart_qual' : [4]}
             ],
             output={'both' : 'log'}, # Mute executable output
         )
