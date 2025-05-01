@@ -31,6 +31,8 @@ void realsense_cam_thread(map<string, int> parsed, int tmap_index) {
         return;
     }
 
+    RCLCPP_INFO(camera_manager_node->get_logger(), "Hello from the realsense!!");
+
     // Get the important stuff - we WON'T be using a camera object - just receiving images
     auto quality = parsed[INDEX_QUALITY];
     auto preset = preset_from_quality(quality);
@@ -86,6 +88,7 @@ void realsense_cam_thread(map<string, int> parsed, int tmap_index) {
 
             // Get the frame
             auto msg = realsense_frame_queue.front();
+            RCLCPP_INFO(camera_manager_node->get_logger(),"height %d, width %d", msg.height, msg.width);
             realsense_frame_queue.pop();
 
             // HACK temporarily addresses streaming resolution
@@ -94,6 +97,7 @@ void realsense_cam_thread(map<string, int> parsed, int tmap_index) {
             // Check if we need to change the size
             // HACK we and this assuming aspect is not constant
             // Need to go in here and just change whichever edges are possible
+            // TODO need to cover case of ironically starting res too high!!
             if (msg.width > width && msg.height > height) {
                 auto old_msg = msg;
                 msg = sensor_msgs::msg::Image();
@@ -103,7 +107,9 @@ void realsense_cam_thread(map<string, int> parsed, int tmap_index) {
                 msg.step = old_msg.step;
                 
                 // Resize the image
-                cv::Mat frame(msg.height, msg.width, CV_8UC3, (void*)msg.data.data());
+                // RCLCPP_INFO(camera_manager_node->get_logger(), "Is data null: %s", msg.data.data() == nullptr ? "true" : "false");
+                RCLCPP_INFO(camera_manager_node->get_logger(), "Resize to %dx%d", msg.width, msg.height);
+                cv::Mat frame(msg.height, msg.width, CV_8UC3, (uchar*)old_msg.data.data());
                 cv::resize(frame, frame, cv::Size(width, height));
                 msg.data = vector<uint8_t>(frame.data, frame.data + frame.total() * frame.elemSize());
                 msg.header.stamp = old_msg.header.stamp;
@@ -112,7 +118,8 @@ void realsense_cam_thread(map<string, int> parsed, int tmap_index) {
 
             if (cam_local) {
                 // Steal the ROS2 message - NOT SUPPORTING RESIZING OR METADATA
-                msg.header.frame_id = WRIST_ID;
+                // TODO verify this is ok (Idk)
+                msg.header.frame_id = to_string(WRIST_ID);
                 camera_manager_node->publish_image(msg);
             }
 
